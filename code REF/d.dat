@@ -1,0 +1,1662 @@
+2 		type_sorties[-1=aucun/0=tous/1=xfig/2=vtk]
+-2 1   	nutest (-2: ecrire maillage en typ2; -3: .dt format) ## epsil
+
+-100  (lecture dans un fichier puis deux divisions)
+mesh.dt  (nomficher)
+3 1 5 ndiv1 ndiv2 typediv
+0.2 layer
+
+
+-40  ! deux triangles reproduits et deformation
+10 10 ndivx ndivy  
+2    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+3
+3 na0
+1 2 3
+3 4 1	sommets0
+
+
+-3 	! non-circumsolid, with triangles
+10
+3	ncv0
+5	nbsom0
+0 0
+0.5 0
+1 0
+0.75 2
+0.25 2 xs ys
+1 2 5
+2 4 5
+2 3 4  	sommets0
+
+
+-9  (typepoly) cartesien 
+10 10 ndivx ndivy  
+1    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+1 2 3 4      sommets0
+
+
+-100  (lecture dans un fichier puis deux divisions)
+mesh.dt  (nomficher)
+3 1 5 ndiv1 ndiv2 typediv
+0.2 layer
+
+
+
+
+
+
+-3 	! triangles, L-shaped
+10
+6	ncv0
+8 nbsom0
+0 0
+1 0
+1 1
+0 1
+-1 1
+-1 0
+-1 -1
+0 -1 xs ys
+1 2 4
+2 3 4
+4 5 6
+4 6 1
+1 6 8
+8 6 7	sommets0
+
+
+
+
+
+
+-150 (lecture d'un fichier "typ2")
+mesh1_2.typ2
+
+
+
+
+
+
+
+-430		! L-shape domain, triangles
+20
+6   ncv0       
+8    nbsom0       
+0 0        
+0 1
+-1 1
+-1 0
+-1 -1
+0 -1
+1 -1
+1 0   xs_ys
+1 2 3
+1 3 4
+1 4 5
+1 5 6
+1 6 7
+1 7 8        sommets0
+
+
+
+
+
+
+-100  (lecture dans un fichier puis deux divisions)
+mesh.dt  (nomficher)
+5 1 6 ndiv1 ndiv2 typediv
+0.05 layer
+
+
+
+
+
+-20  cartesien; deux divisions
+20 20 1 ndiv1 ndiv2 typediv
+2    ncv0       
+6    nbsom0       
+0 0
+.5 0
+1. 0.
+1. 1.
+.5 1
+0. 1. xs ys
+4
+4 na0
+1 2 5 6      
+2 3 4 5 sommets0
+
+
+
+
+
+
+-20  cartesien; deux divisions
+20 10 6 ndiv1 ndiv2 typediv
+4    ncv0       
+9    nbsom0       
+0 0
+.5 0
+1. 0.
+0 .5
+.5 .5
+1. .5
+0. 1.
+.5 1.
+1. 1. xs ys
+4
+4
+4
+4 na0
+1 2 5 4
+2 3 6 5
+4 5 8 7
+5 6 9 8 sommets0
+
+-230  reproduction/deformation puis maillage dual (deux triangles, l'autre sens)
+35 35 ndivx ndivy  
+2    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+3
+3 na0
+1 2 3
+3 4 1	sommets0
+
+
+-30  reproduction d'un motif initial (triangles)
+1 1 ndivx ndivy  
+14  ncv0
+12  nbsom0
+0 0
+0 .5
+.5 0
+.3 .3
+.35 .65
+.7 .7
+.65 .35
+1 0
+1 .5
+0 1
+.5 1
+1 1  xs0 ys0
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3  na0
+1 3 4
+1 4 2
+3 8 7
+3 7 4
+4 7 5
+2 4 5
+2 5 10
+8 9 7
+7 9 6
+5 7 6
+5 6 11
+5 11 10
+6 9 12
+6 12 11  sommets0
+
+-30 reproduction triangles
+1 1 ndivx ndivy
+2   ncv0
+4  nbsom0
+0 0
+1. 0
+1. 1.
+0 1.  xs ys
+3
+3 na0
+1 2 3
+1 3 4   sommets0
+
+
+
+
+
+
+
+
+
+-150 (lecture d'un fichier "typ2")
+mesh.typ2
+
+
+
+
+
+
+
+
+
+-3		! L-shape domain, triangles
+20  
+4    ncv0       
+6    nbsom0       
+0 0        
+0.5 1
+-1 1
+-1 -1
+1 -1
+1 0   xs_ys
+1 2 3
+1 3 4
+1 4 5
+1 5 6        sommets0
+
+
+
+
+
+-20  cartesien; deux divisions
+4 10 3 ndiv1 ndiv2 typediv
+4    ncv0       
+9    nbsom0       
+0 0
+.7 0
+1. 0.
+0 .7
+.7 .7
+1. .7
+0. 1.
+.7 1.
+1. 1. xs ys
+4
+4
+4
+4 na0
+1 2 5 4
+2 3 6 5
+4 5 8 7
+5 6 9 8 sommets0
+
+
+-150 (lecture d'un fichier "typ2")
+../matlab/mesh_generator/typ2_meshes/cart_moved_1.typ2 
+
+
+-30 reproduction trois rectangles
+160 160 ndivx ndivy
+3   ncv0
+9   nbsom0
+0 0
+.5 0
+1 0
+0 .5
+.5 .5
+1 .5
+0 1
+.5 1
+1 1   xs ys
+4
+4
+6 na0
+1 2 5 4
+2 3 6 5
+4 5 6 9 8 7   sommets0
+
+
+
+
+-40  reproduction et deformation (cartesien)
+15 960  ndivx ndivy  
+1    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+4 na0
+1 2 3 4      sommets0
+
+
+
+
+-31  reproduction d'un motif initial (2 quadrangles)
+15 960 ndivx ndivy  
+2  ncv0
+6  nbsom0
+0 0
+.3 0
+1. 0
+1. 1.
+.6 1.
+0. 1.  xs ys
+4
+4 na0
+1 2 5 6
+2 3 4 5  sommets0
+
+
+-31 reproduction motif initial (triangle)
+10 10 ndivx ndivy  
+7 ncv0
+8 nbsom0
+0 0
+.2 0
+1 0
+0 .5
+.8 .5
+0 1
+.2 1
+1 1 xs0 ys0
+3
+3
+3
+3
+3
+3
+3  na0
+1 2 4
+2 3 5
+4 2 7
+7 2 5
+8 5 3
+4 7 6
+7 5 8 sommets0
+
+
+
+-31  reproduction d'un motif initial (deux zones: cartesien et tordu)
+10 10 ndivx ndivy  
+4  ncv0
+9  nbsom0
+0 0
+.5 0
+1 0
+0 .5
+.5 .5
+1 .5
+0 1
+.5 1
+1 1  xs ys
+4
+4
+4
+4 na0
+1 8 7 4
+1 2 5 8
+2 3 6 5
+5 6 9 8  sommets0
+
+
+
+
+
+-30  reproduction d'un motif initial (triangles)
+100 500 ndivx ndivy  
+2  ncv0
+4  nbsom0
+0 0
+1. 0
+1. 1.
+0. 1.  xs ys
+3
+3 na0
+1 2 3
+3 4 1  sommets0
+
+
+
+-50  reproduction avec anisotropie domaine inferieur (cartesien)
+400 .02 ndiv anisotropy  
+1    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+4 na0
+1 2 3 4      sommets0
+
+
+-150 (lecture d'un fichier "typ2")
+../HArDCore2D/typ2_meshes/mesh4_1_2.typ2
+
+
+
+
+
+
+
+
+
+
+
+
+-150 (lecture d'un fichier "typ2")
+new_mesh.typ2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-230  reproduction/deformation puis maillage dual (deux triangles, l'autre sens)
+163840 163840 ndivx ndivy  
+2    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+3
+3 na0
+1 2 3
+3 4 1	sommets0
+
+
+
+
+
+
+
+-230  reproduction/deformation puis maillage dual (deux triangles)
+163840 163840 ndivx ndivy  
+2    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+3
+3 na0
+1 2 4
+2 3 4	sommets0
+
+
+
+
+-3
+1 0    
+14    ncv0       
+12    nbsom0       
+0 0        
+.5 0
+1 0
+1 .5
+1 1
+.5 1
+0 1
+0 .5
+.3 .3
+.65 .35
+.7 .7
+.35 .65    xs_ys
+1 2 9                 
+2 10 9
+2 3 10
+3 4 10
+4 11 10
+4 5 11
+5 6 11
+11 6 12
+6 7 12
+7 8 12
+8 9 12
+8 1 9
+9 10 12
+10 11 12        sommets0
+
+
+
+
+-31 reproduction motif initial (triangle)
+16384 16384 ndivx ndivy  
+21 ncv0
+16 nbsom0
+0 0
+.5 0
+0 .5
+.35 .85
+.5 .35
+.5 .65
+0 1
+.5 1
+1 1
+1 .65
+.75 .72
+.75 .5
+.75 .28
+1 .35
+1 0
+.15 .5  xs0 ys0
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3  na0
+1 16 3
+16 4 3
+1 2 16
+16 2 5
+16 5 4
+3 4 7
+4 8 7
+4 5 6
+4 6 8
+8 11 9
+6 11 8
+11 10 9
+6 12 11
+12 10 11
+5 12 6
+12 14 10
+5 13 12
+13 14 12
+2 13 5
+2 15 13
+13 15 14  sommets0
+
+
+
+-3
+4096 0 ndivx ndivy  
+14  ncv0
+12  nbsom0
+0 0
+0 .5
+.5 0
+.3 .3
+.35 .65
+.7 .7
+.65 .35
+1 0
+1 .5
+0 1
+.5 1
+1 1  xs0 ys0
+1 3 4
+1 4 2
+3 8 7
+3 7 4
+4 7 5
+2 4 5
+2 5 10
+8 9 7
+7 9 6
+5 7 6
+5 6 11
+5 11 10
+6 9 12
+6 12 11  sommets0
+
+
+
+
+
+-30  reproduction d'un motif initial (triangles)
+8192 8192 ndivx ndivy  
+14  ncv0
+12  nbsom0
+0 0
+0 .5
+.45 0
+.3 .35
+.35 .65
+.75 .65
+.7 .35
+1 0
+1 .5
+0 1
+.45 1
+1 1  xs0 ys0
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3  na0
+1 3 4
+1 4 2
+3 8 7
+3 7 4
+4 7 5
+2 4 5
+2 5 10
+8 9 7
+7 9 6
+5 7 6
+5 6 11
+5 11 10
+6 9 12
+6 12 11  sommets0
+
+
+
+
+
+-31  reproduction d'un motif initial (triangles)
+8192 8192 ndivx ndivy  
+14  ncv0
+12  nbsom0
+0 0
+0 .4
+.5 0
+.3 .3
+.35 .65
+.7 .7
+.65 .35
+1 0
+1 .63
+0 1
+.60 1
+1 1  xs0 ys0
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3  na0
+1 3 4
+1 4 2
+3 8 7
+3 7 4
+4 7 5
+2 4 5
+2 5 10
+8 9 7
+7 9 6
+5 7 6
+5 6 11
+5 11 10
+6 9 12
+6 12 11  sommets0
+
+
+
+-30 reproduction motif initial (triangle)
+8192 8192 ndivx ndivy  
+12 ncv0
+13 nbsom0
+0 0
+.33 0
+.66 0
+1 0
+0 .33
+.4 .5
+1 .33
+0 .66
+1 .66
+0 1
+.33 1
+.66 1
+1 1 xs0 ys0
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3  na0
+1 2 5
+5 2 6
+2 3 6
+6 3 7
+3 4 7
+5 6 8
+6 7 9
+8 11 10
+8 6 11
+11 6 12
+6 9 12
+12 9 13 sommets0
+
+
+
+
+
+-9  cartesien 
+40960 40960 ndiv   
+1    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+1 2 3 4      sommets0
+
+-150 (lecture d'un fichier "typ2")
+mesh.typ2
+
+
+-30  reproduction d'un motif initial (2d bow tie)
+32768 32768 ndivx ndivy  
+3  ncv0
+20  nbsom0
+0 0
+.1 0
+.9 0
+1 0
+.1 .4
+.3 .4
+.4 .3
+.6 .3
+.7 .4
+.9 .4
+.1 .6
+.3 .6
+.4 .7
+.6 .7
+.7 .6
+.9 .6
+0 1
+.1 1
+.9 1
+1 1  xs ys
+20
+8
+8 na0
+1 2 5 6 7 8 9 10 3 4 20 19 16 15 14 13 12 11 18 17
+2 3 10 9 8 7 6 5
+11 12 13 14 15 16 19 18  sommets0
+
+
+-3
+8192 0 ndivx ndivy  
+4  ncv0
+5  nbsom0
+0 0
+0 1
+1 0
+1 1
+.5 .5  xs0 ys0
+1 5 2
+3 5 1
+4 5 3
+4 2 5  sommets0
+
+
+
+
+
+
+
+-31  (triangles)  !! ECART CIRCUMCENTER-GRAVITE 'large' (mais compense par symmetrie)
+16384 16384 ndivx ndivy  
+11  ncv0
+10  nbsom0
+0 0
+.6 0
+1 0
+.5 .5
+.8 .3
+1 .5
+.8 .6
+0 1
+.6 1
+1 1.  xs ys
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3 na0
+1 2 4
+4 2 5
+2 3 5
+5 3 6
+1 4 8
+4 5 7
+5 6 7
+8 4 9
+4 7 9
+9 7 10
+7 6 10  sommets0
+
+
+
+
+
+-3
+1 0    
+4   ncv0       
+5    nbsom0       
+0 0        
+1 0
+1 1
+0 1
+.5 .7  xs ys
+1 2 5
+2 3 5
+3 4 5
+4 1 5     sommets0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-3
+163840 0 ndivx ndivy  
+2   ncv0       
+4    nbsom0       
+0 0        
+1 .5
+0 1
+-.7 .5  xs ys
+1 2 3
+3 4 1     sommets0
+
+
+
+
+
+
+
+
+
+
+
+
+-30  reproduction d'un motif initial (triangles)
+131072 131072 ndivx ndivy  
+14  ncv0
+12  nbsom0
+0 0
+0 .5
+.5 0
+.3 .3
+.35 .65
+.7 .7
+.65 .35
+1 0
+1 .5
+0 1
+.5 1
+1 1  xs0 ys0
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3  na0
+1 3 4
+1 4 2
+3 8 7
+3 7 4
+4 7 5
+2 4 5
+2 5 10
+8 9 7
+7 9 6
+5 7 6
+5 6 11
+5 11 10
+6 9 12
+6 12 11  sommets0
+
+
+
+
+
+
+
+
+-9 maillage pour COUPLEX
+160 0    
+4 ncv0
+10 nbsom0
+0. 0.
+0. 200.
+0. 295.
+0. 595.
+0. 695.
+1250. 695.
+1250. 595.
+1250. 350.
+1250. 200.
+1250. 0.		xs ys
+1 10 9 2
+2 9 8 3
+3 8 7 4
+4 7 6 5 sommets0
+
+
+
+
+
+
+
+
+
+
+
+
+-31  reproduction d'un motif initial (triangles et rectangle)
+524288 524288 ndivx ndivy  
+3    ncv0       
+6    nbsom0       
+0 0
+.5 0
+1. 0.
+1. 1.
+.5 1
+0. 1. xs ys
+3
+3
+4 na0
+1 2 5
+5 6 1      
+2 3 4 5 sommets0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-230  reproduction/deformation puis maillage dual (cartesien)
+15728640 15728640 ndivx ndivy  
+1    ncv0
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+4 na0
+1 2 3 4      sommets0
+
+
+
+
+
+
+
+
+
+-30  reproduction d'un motif initial (cartesien)
+10485760 10485760 ndivx ndivy  
+1  ncv0
+4  nbsom0
+0 0
+1 0
+1 1
+0 1  xs ys
+4 na0
+1 2 3 4  sommets0
+
+
+
+
+-31  reproduction d'un motif initial (deux zones: cartesien et tordu)
+10485760 10485760 ndivx ndivy  
+4  ncv0
+9  nbsom0
+0 0
+.5 0
+1 0
+0 .5
+.5 .5
+1 .5
+0 1
+.5 1
+1 1  xs ys
+4
+4
+4
+4 na0
+1 8 7 4
+1 2 5 8
+2 3 6 5
+5 6 9 8  sommets0
+
+
+
+
+
+
+
+
+-20  quatre zones initialement peu coupees
+10485760 10485760 1 ndiv1 ndiv2 typediv
+9    ncv0       
+14    nbsom0       
+0 0
+0 .6
+0 1
+.1 .5
+.4 .2
+.5 .8
+.65 .4
+1 0
+1 .68
+1 1
+.5 1
+.4 0 
+.65 0
+0 .8 xs ys
+4
+3
+4
+4
+4
+4
+3
+4
+4 na0
+4 5 7 6
+7 9 6
+6 9 10 11
+7 13 8 9
+12 13 7 5
+1 12 5 4
+1 4 2
+2 4 6 14
+14 6 11 3 sommets0
+
+
+
+
+
+
+
+-9  cartesien penche de 1/3
+400 0    
+2    ncv0
+6    nbsom0       
+0 0  
+0.333333 0.
+1. 0.
+1. 1.
+0.666666 1.
+0. 1. xs ys
+1 2 5 6
+2 3 4 5   sommets0
+
+
+
+
+
+
+
+-9  quadrangles deformes
+800 0    
+9    ncv0
+16    nbsom0       
+0 0
+.3 0
+.7 0
+1 0
+1 .2
+.75 .3
+.4 .3
+0 .4
+0 .6
+.3 .7
+.6 .6
+1 .8
+1 1
+.6 1
+.4 1
+0 1 xs ys
+1 2 7 8
+2 3 6 7
+3 4 5 6
+8 7 10 9
+7 6 11 10
+6 5 12 11
+9 10 15 16
+10 11 14 15
+11 12 13 14    sommets0
+
+
+
+
+
+
+
+
+
+
+
+-31  reproduction d'un motif initial (9 quadrangles)
+10485760 10485760 ndivx ndivy  
+9    ncv0
+16    nbsom0       
+0 0
+.3 0
+.7 0
+1 0
+1 .2
+.75 .3
+.4 .3
+0 .4
+0 .6
+.3 .7
+.6 .6
+1 .8
+1 1
+.6 1
+.4 1
+0 1 xs ys
+4
+4
+4
+4
+4
+4
+4
+4
+4 na0
+1 2 7 8
+2 3 6 7
+3 4 5 6
+8 7 10 9
+7 6 11 10
+6 5 12 11
+9 10 15 16
+10 11 14 15
+11 12 13 14    sommets0
+
+
+
+
+
+
+-20  quatre zones de permeabilite, mailles initialement un peu coupees; deux divisions
+10485760 10485760 1 ndiv1 ndiv2 typediv
+9    ncv0       
+14    nbsom0       
+0 0
+0 .6
+0 1
+.2 .5
+.8 .2
+1 .8
+1.3 .4
+2 0
+2 .68
+2 1
+1 1
+.8 0 
+1.3 0
+0 .8 xs ys
+4
+3
+4
+4
+4
+4
+3
+4
+4 na0
+4 5 7 6
+7 9 6
+6 9 10 11
+7 13 8 9
+12 13 7 5
+1 12 5 4
+1 4 2
+2 4 6 14
+14 6 11 3 sommets0
+
+
+
+
+
+
+
+
+
+-9  puit a l'interieur
+80 0    
+16  ncv
+25  nbsom0
+0 0
+.4 0
+.6 0
+.8 0
+1 0
+0 .4
+.4 .4
+.6 .4
+.8 .4
+1 .4
+0 .6
+.4 .6
+.55 .6
+.8 .6
+1 .6
+0 .8
+.4 .8
+.6 .8
+.8 .8
+1 .8
+0 1
+.4 1
+.6 1
+.8 1
+1 1   xs ys
+1 2 7 6
+2 3 8 7
+3 4 9 8
+4 5 10 9
+6 7 12 11
+7 8 9 13
+9 10 15 14
+11 12 17 16
+12 7 13 17
+13 9 14 19
+14 15 20 19
+16 17 22 21
+17 18 23 22
+17 13 19 18
+18 19 24 23
+19 20 25 24  sommets0
+
+
+
+-9  cartesien sur (-1,1)
+800 0    
+1    ncv0       
+4    nbsom0       
+-1. -1.  
+1. -1.
+1. 1.
+-1. 1. xs ys
+1 2 3 4      sommets0
+
+
+
+
+
+
+
+
+
+
+-9  deux zones: cartesien et tordu
+400 0    
+4  ncv
+9  nbsom0
+0 0
+.5 0
+1 0
+0 .5
+.5 .5
+1 .5
+0 1
+.5 1
+1 1  xs ys
+1 8 7 4
+1 2 5 8
+2 3 6 5
+5 6 9 8  sommets0
+
+
+
+
+
+
+-20  triangles et rectangles; deux divisions
+10485760 10485760 1 ndiv1 ndiv2 typediv
+3    ncv0       
+6    nbsom0       
+0 0
+.5 0
+1. 0.
+1. 1.
+.5 1
+0. 1. xs ys
+3
+3
+4 na0
+1 2 5
+5 6 1      
+2 3 4 5 sommets0
+
+
+
+-100  (lecture dans un fichier puis deux divisions)
+maillage.dt  (nomficher)
+10485760 10485760 1 ndiv1 ndiv2 typediv
+
+
+
+
+-9  cartesien sur (-1,1)^2
+400 0    
+1    ncv0       
+4    nbsom0       
+-1. -1.  
+1. -1.
+1. 1.
+-1. 1. xs ys
+1 2 3 4      sommets0
+
+
+
+-20 
+10485760 10485760 1 ndiv1 ndiv2 typediv
+3    ncv0       
+7    nbsom0       
+0 0
+.5 0
+1. 0.
+1. 1.
+.5 1
+0. 1. 
+.5 .5 xs ys
+4
+3
+5 na0
+1 2 7 5
+5 6 1    
+2 3 4 5 7 sommets0
+
+
+
+
+
+
+
+-20  cartesien sur ouvert non carre; deux divisions
+10485760 10485760 1 ndiv1 ndiv2 typediv
+3    ncv0       
+8    nbsom0       
+0 0
+.5 0
+.5 .5
+1 .5
+1. 1.
+.5 1
+0. 1. 
+0. .5 xs ys
+4
+4
+4  na0
+1 2 3 8
+3 4 5 6
+6 7 8 3 sommets0
+
+
+
+
+
+
+
+-20  triangles; deux divisions
+10485760 10485760 1 ndiv1 ndiv2 typediv
+4    ncv0       
+6    nbsom0       
+0 0
+.5 0
+1. 0.
+1. 1.
+.5 1
+0. 1. xs ys
+3
+3
+3
+3 na0
+1 2 5
+5 6 1      
+2 3 5
+3 4 5 sommets0
+
+
+
+
+-3
+8 0    
+2 ncv0
+4 nbsom0
+0 0
+1 0
+1 1 
+0 1 xs ys
+1 2 3
+3 4 1  sommets0
+
+
+
+-20 
+10485760 10485760 1 ndiv1 ndiv2 typediv
+2    ncv0       
+6    nbsom0       
+0 0  
+.7 0
+1. 0.
+1. 1.
+.7 1
+0. 1. xs ys
+1 2 5 6
+2 3 4 5      sommets0
+
+
+
+
+-20  deux zones: cartesien et tordu; deux divisions
+10485760 10485760 1 ndiv1 ndiv2 typediv
+4  ncv0
+9  nbsom0
+0 0
+.5 0
+1 0
+0 .5
+.5 .5
+1 .5
+0 1
+.5 1
+1 1  xs ys
+1 8 7 4
+1 2 5 8
+2 3 6 5
+5 6 9 8  sommets0
+
+
+
+
+
+
+
+-9  rectangles ecrase
+400 0    
+2    ncv0       
+6    nbsom0       
+0. 0. 
+1. 0.
+1. 1.
+0. 1. 
+0.5 0.
+0.5 1. xs ys
+1 5 6 4
+5 2 3 6 sommets0
+
+
+-9  deux zones: cartesien et tordu
+400 0    
+4  ncv
+9  nbsom0
+0 0
+.5 0
+1 0
+0 .5
+.5 .5
+1 .5
+0 1
+.5 1
+1 1  xs ys
+1 8 7 4
+1 2 5 8
+2 3 6 5
+5 6 9 8  sommets0
+
+
+
+-9  cartesien 
+400 0    
+1    ncv0       
+4    nbsom0       
+0 0  
+1. 0.
+1. 1.
+0. 1. xs ys
+1 2 3 4      sommets0
+
+
+
+
+
+
+
+-9
+400 0    
+9   ncv0
+16   nbsom0
+0 0
+.25 0
+.75 0
+1 0
+0 .25
+.25 .4
+.75 .4
+1 .25
+0 .75
+.25 .6
+.75 .6
+1 .75
+0 1
+.25 1
+.75 1
+1 1  xs  ys
+1 2 6 5
+2 3 7 6
+3 4 8 7
+5 6 10 9
+6 7 11 10
+7 8 12 11
+9 10 14 13
+10 11 15 14
+11 12 16 15  sommets0
+
+
+
+-9
+160 0    
+4  ncv0
+9  nbsom0
+0 0
+.5 0
+1 0
+0 .5
+.5 .5
+1 .5
+0 1
+.5 1
+1 1  xs ys
+1 2 3 5
+3 6 9 5
+9 8 7 5
+1 5 7 4  sommets0
+
+
+
+
+
+
+
