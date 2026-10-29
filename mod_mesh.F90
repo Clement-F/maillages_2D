@@ -785,7 +785,7 @@ MODULE mod_mesh
             ! print *,"Ver", iPol, "Som", Msh%Sommets(iPol,:)
             Msh%Sommets(iPol,Msh%NbSom(iPol))   = size+i
             ! Msh%NbSom(iPol) = Msh%NbSom(iPol) +1 
-            print *,"origine : ",iVer,"Ver", iPol, "Som", Msh%Sommets(iPol,:)
+            print *,"origine : ",iVer,"Ver", size+i, "Som", Msh%Sommets(iPol,:)
         END DO
 
         ! ADD COMMENT 
@@ -863,7 +863,7 @@ MODULE mod_mesh
         END DO
 
         DO iCell=1,Msh%Nb_Cell
-            CALL Convex_Check(iCell)
+            CALL Gift_Wrapping(iCell)
         END DO
 
         Contains
@@ -923,16 +923,22 @@ MODULE mod_mesh
             ! se déroule dans le sens horaire.
             IMPLICIT NONE
             INTEGER, INTENT(IN) :: nCell
-            REAL(prec),DIMENSION(2) :: Coord_i, Coord_j, Coord_k
+            REAL(prec),DIMENSION(2) :: Coord_i,Coord_ip, Coord_j,Coord_jp, Coord_k
             REAL(prec),DIMENSION(2) :: i_To_j, j_To_k
-            REAL(prec) :: signed, tot_angle, angle_add
-            LOGICAL :: IsConvex
+            REAL(prec) :: signed, tot_angle, angle_add, last_angle
+            LOGICAL :: IsConvex, IsNonIntersecting
             INTEGER, DIMENSION(Msh%NbSom(nCell),3) :: Cell2Edg
-            INTEGER :: iVer,jVer,kVer
-            INTEGER :: i,j,k
+            INTEGER, DIMENSION(0:Msh%NbSom(nCell)-1) :: Cell2Edg2
+            INTEGER :: iVer,ipVer,jVer,jpVer,kVer
+            INTEGER :: i,j
 
             ! print *,Msh%NbSom(nCell)
             ! print *,Msh%Sommets(nCell,:)
+            ! DO i=1,Msh%nbSom(nCell)
+            !     write(*,fmt='("Ver :",i3," coord "2(f6.3,1x))') Msh%Sommets(nCell,i), Msh%Coord(Msh%Sommets(nCell,i),:)
+            ! END DO
+
+            Cell2Edg2(:)  = [(i,i=1,Msh%NbSom(nCell)-1),  Msh%NbSom(nCell)]
             Cell2Edg(:,1) = [(i,i=1,Msh%NbSom(nCell)-1),  Msh%NbSom(nCell)]
             Cell2Edg(:,2) = [(i+1,i=1,Msh%NbSom(nCell)-1),      1         ]
             Cell2Edg(:,3) = [(i+2,i=1,Msh%NbSom(nCell)-2),      1,2       ]
@@ -949,41 +955,61 @@ MODULE mod_mesh
 
             tot_angle = 0._prec
             IsConvex = .FALSE.
+            IsNonIntersecting = .FALSE.
+
 
             i =1; j=1
-            DO WHILE(.NOT. ISConvex)
+            DO WHILE(.NOT. ISConvex .AND. .NOT. IsNonIntersecting)
             
-            iVer = Msh%Sommets(nCell,Cell2Edg(i,1))
-            jVer = Msh%Sommets(nCell,Cell2Edg(i,2))
-            kVer = Msh%Sommets(nCell,Cell2Edg(i,3))
-            Coord_i = Msh%Coord(iVer,:)
-            Coord_j = Msh%Coord(jVer,:)
-            Coord_k = Msh%Coord(kVer,:)
-            i_To_j = Coord_j-Coord_i
-            j_To_k = Coord_k-Coord_j
+            DO WHILE(.NOT. IsNonIntersecting)
+                print *,i,j
+                iVer  = Msh%Sommets(nCell,Cell2Edg(i,1))
+                ipVer = Msh%Sommets(nCell,Cell2Edg(i,2))
+                Coord_i  = Msh%Coord(iVer,:)
+                Coord_ip = Msh%Coord(ipVer,:)
 
-            angle_add = atan2(norm2(normalized(i_To_j)-normalized(j_To_k)),1._prec )
-            tot_angle = tot_angle +angle_add
-            ! write(*,fmt='(i3,1x,i3,1x,"in",i3,1x," de det ",f6.3,1x,"avec vect :",2f6.3,1x,2f6.3)')iVer,jVer,nCell,det(i_To_j,j_To_k), i_To_j,j_To_k
-            ! write(*,fmt='("Vertex :",i3,1x,2f6.3)') iVer, Coord_i
-            ! write(*,fmt='("Vertex :",i3,1x,2f6.3)') jVer, Coord_j
-            ! write(*,fmt='("Vertex :",i3,1x,2f6.3)') kVer, Coord_k
-            write(*,fmt='(i3,1x,i3,1x,i3,1x,"in",i3,1x," de det ",f6.3,1x,"avec vect :",2f6.3,1x,2f6.3," sign Cell :",f6.3," tot angle :", f6.3)')iVer,jVer,kVer,nCell,det(i_To_j,j_To_k), i_To_j,j_To_k,signed, tot_angle
-                
-            IF(det(i_To_j,j_To_k) < -eps0) THEN
-                CALL Permute_Vertex_onCell(jVer,kVer,nCell)
-                iVer = Msh%Sommets(nCell,Cell2Edg(1,1))
-                jVer = Msh%Sommets(nCell,Cell2Edg(1,2))
-                kVer = Msh%Sommets(nCell,Cell2Edg(1,3))
+                jVer  = Msh%Sommets(nCell,Cell2Edg(j,1))
+                jpVer = Msh%Sommets(nCell,Cell2Edg(j,2))                
+                Coord_j = Msh%Coord(jVer,:)
+                Coord_jp = Msh%Coord(jpVer,:)
+
+                print *,iVer,ipVer,jVer,jpVer
+
+                IF(CheckIntersect(Coord_i,Coord_ip, Coord_j,Coord_jp)) THEN
+                    CALL Permute_Vertex_onCell(ipVer,jVer,nCell)
+                    i=0;
+                    j=1
+                END IF
+                i = i+1
+                IF(i .GT. Msh%NbSom(nCell)) THEN; j=j+1; i=j;  END IF
+
+                IF(j .GT. Msh%NbSom(nCell)) THEN
+                    IsNonIntersecting = .TRUE.
+                    i=1
+                    j=1
+                END IF
+            END DO
+
+                iVer = Msh%Sommets(nCell,Cell2Edg(i,1))
+                jVer = Msh%Sommets(nCell,Cell2Edg(i,2))
+                kVer = Msh%Sommets(nCell,Cell2Edg(i,3))
                 Coord_i = Msh%Coord(iVer,:)
                 Coord_j = Msh%Coord(jVer,:)
                 Coord_k = Msh%Coord(kVer,:)
                 i_To_j = Coord_j-Coord_i
                 j_To_k = Coord_k-Coord_j
-                signed = Sign(1._prec,det(i_To_j,j_To_k))
-                j = 0; i=0       
-                tot_angle = 0._prec
-            ELSE IF(abs(det(i_To_j,j_To_k)).LT.eps0 .AND. (i_To_j(1)/(j_To_k(1)+eps0) .LT. eps0 .AND.i_To_j(2)/(j_To_k(2)+eps0) .LT. eps0 )) THEN 
+
+                angle_add = atan2(norm2(normalized(i_To_j)-normalized(j_To_k)),1._prec )
+                tot_angle = tot_angle +angle_add
+                ! write(*,fmt='(i3,1x,i3,1x,"in",i3,1x," de det ",f6.3,1x,"avec vect :",2f6.3,1x,2f6.3)')iVer,jVer,nCell,det(i_To_j,j_To_k), i_To_j,j_To_k
+                ! write(*,fmt='("Vertex :",i3,1x,2f6.3)') iVer, Coord_i
+                ! write(*,fmt='("Vertex :",i3,1x,2f6.3)') jVer, Coord_j
+                ! write(*,fmt='("Vertex :",i3,1x,2f6.3)') kVer, Coord_k
+                write(*,fmt='(i3,1x,i3,1x,i3,1x,"in",i3,1x," de det ",f6.3,1x,"avec vect :",2f6.3,1x,2f6.3," sign Cell :",f6.3," tot angle :", f6.3)')iVer,jVer,kVer,nCell,det(i_To_j,j_To_k), i_To_j,j_To_k,signed, tot_angle
+                
+
+            ! Si les 3 points sont alignées
+            IF(abs(det(i_To_j,j_To_k)).LT.eps0 .AND. (i_To_j(1)/(j_To_k(1)+eps0) .LT. eps0 .AND.i_To_j(2)/(j_To_k(2)+eps0) .LT. eps0 )) THEN 
                 CALL Permute_Vertex_onCell(jVer,kVer,nCell)
                 iVer = Msh%Sommets(nCell,Cell2Edg(1,1))
                 jVer = Msh%Sommets(nCell,Cell2Edg(1,2))
@@ -998,6 +1024,7 @@ MODULE mod_mesh
                 tot_angle = 0._prec
             END IF
 
+            ! Si on fait plus qu'un tour
             IF(tot_angle .GT. 2*pi) THEN 
                 print *,"ABOVE 2PI"
                 tot_angle = 0._prec
@@ -1014,10 +1041,44 @@ MODULE mod_mesh
                 j = 0; i=0  
             END IF
 
+            IF(angle_add + last_angle .GT. pi) THEN 
+                print *,"ABOVE PI"
+                tot_angle = 0._prec
+                CALL Permute_Vertex_onCell(iVer,jVer,nCell)
+                iVer = Msh%Sommets(nCell,Cell2Edg(1,1))
+                jVer = Msh%Sommets(nCell,Cell2Edg(1,2))
+                kVer = Msh%Sommets(nCell,Cell2Edg(1,3))
+                Coord_i = Msh%Coord(iVer,:)
+                Coord_j = Msh%Coord(jVer,:)
+                Coord_k = Msh%Coord(kVer,:)
+                i_To_j = Coord_j-Coord_i
+                j_To_k = Coord_k-Coord_j
+                signed = Sign(1._prec,det(i_To_j,j_To_k))
+                j = 0; i=0  
+            END IF
+
+            ! Si l'on change de sens 
+            IF(det(i_To_j,j_To_k) < -eps0) THEN
+                CALL Permute_Vertex_onCell(jVer,kVer,nCell)
+                iVer = Msh%Sommets(nCell,Cell2Edg(1,1))
+                jVer = Msh%Sommets(nCell,Cell2Edg(1,2))
+                kVer = Msh%Sommets(nCell,Cell2Edg(1,3))
+                Coord_i = Msh%Coord(iVer,:)
+                Coord_j = Msh%Coord(jVer,:)
+                Coord_k = Msh%Coord(kVer,:)
+                i_To_j = Coord_j-Coord_i
+                j_To_k = Coord_k-Coord_j
+                signed = Sign(1._prec,det(i_To_j,j_To_k))
+                j = 0; i=0       
+                tot_angle = 0._prec
+            END IF
+
+
             IF(j .GT. Msh%NbSom(nCell)) ISConvex = .TRUE.
 
             j = j +1;
             i = i +1
+            last_angle = angle_add
             IF(i>Msh%NbSom(nCell)) i=1
 
             END DO
@@ -1029,7 +1090,7 @@ MODULE mod_mesh
             IMPLICIT NONE
             INTEGER, INTENT(IN) :: nCell
             REAL(prec),DIMENSION(:,:), ALLOCATABLE :: Coord_Cell
-            REAL(prec),DIMENSION(2) :: Coord_i, Coord_j, Coord_start, vect
+            REAL(prec),DIMENSION(2) :: Coord_i,Coord_j, Coord_start, vect, vect_next,vect_prev
             REAL(prec) :: Min_angle
             INTEGER, DIMENSION(Msh%NbSom(nCell)) :: Convex_hull
             INTEGER :: Ver_i,Ver_j, Start_Point,Next_Point
@@ -1038,42 +1099,62 @@ MODULE mod_mesh
             print *, "Gift wrapping ",nCell
             print *, Msh%Sommets(nCell,:)
 
+            Convex_hull = 0
             ALLOCATE(Coord_Cell(Msh%NbSom(nCell),2))
             Coord_Cell = Msh%Coord(Msh%Sommets(nCell,1:Msh%NbSom(nCell)),:)
             
 
-            print *,Coord_Cell(:,1)
+            ! print *,Coord_Cell(:,1)
 
             ! Find point leftmost of nCell
             Coord_start(1) = Minval(Coord_Cell(:,1))
             Start_Point = FINDLOC(Coord_Cell(:,1),Coord_start(1),DIM=1)
             Start_Point = Msh%Sommets(nCell,Start_Point)
 
-            Ver_i= Start_Point;
+            Ver_i=Start_Point;
             Convex_hull(1) = Start_Point
+            Coord_Start = Msh%Coord(Start_Point,:) 
+
+            vect_prev =0._prec
+
+            next_Point = mod(FINDLOC(Msh%Sommets(nCell,:),Ver_i,DIM=1),Msh%NbSom(nCell))+1
+            next_Point = Msh%Sommets(nCell,next_Point)
+
+            ! print *,"Start :",Start_Point
             i = 2
             DO WHILE(Next_Point .NE. Start_Point)
-                ! print *,Ver_i 
+                ! print *,'-----'
                 Coord_i = Msh%Coord(Ver_i,:)
-                Min_angle = 2*pi
+                next_Point = mod(FINDLOC(Msh%Sommets(nCell,:),Ver_i,DIM=1),Msh%NbSom(nCell))+1
+                next_Point = Msh%Sommets(nCell,next_Point)
+
+                Coord_j = Msh%Coord(next_Point,:)
+                vect_Next = Coord_j- Coord_i
 
                 DO j=1,Msh%NbSom(nCell)
-                    Ver_j = Msh%Sommets(nCell,j)
+
+                    Ver_j   = Msh%Sommets(nCell,j) 
                     Coord_j = Msh%Coord(Ver_j,:)
-                    vect = Coord_j-Coord_i
-                    ! print *,'vect',vect
-                    ! print *,'angle', pi/2._prec -atan2(vect(2),vect(1)), Min_Angle
-                    IF(pi/2._prec - atan2(vect(2),vect(1)) < Min_angle .AND. Ver_j .NE. Ver_i) THEN 
+                    vect = Coord_j- Coord_i
+                    print *,Ver_i,Ver_j,next_Point,det(vect,vect_next)
+                    ! IF it is to the left of the previous guess and it does not go in the other direction as the previous vector, THEN
+                    IF((det(vect,vect_next)<eps0 .AND. Ver_j .NE. Ver_i) .AND. &                   
+                     &.NOT.(abs(det(vect,vect_prev))<eps0 .AND. (vect(1)/(vect_prev(1)+eps0) .LT. eps0 .AND.vect(2)/(vect_prev(2)+eps0) .LT. eps0 ))) THEN
+                        ! print *,"new Next :",Ver_j
                         Next_Point = Ver_j
-                        Min_angle = pi/2._prec - atan2(vect(2),vect(1))
+                        vect_next = vect
                     END IF
                 END DO
-                ! print *,"To", Next_Point
+
+                vect_prev = vect_Next
                 Ver_i = Next_Point
+                IF(Next_Point == Start_Point) Exit
                 Convex_hull(i)= Ver_i
+                ! print *,Convex_hull
                 i = i+1
             END DO
             
+            print *,nCell,": ",Convex_hull
             Msh%Sommets(nCell,1:Msh%NbSom(nCell)) = Convex_hull
 
         END SUBROUTINE Gift_Wrapping

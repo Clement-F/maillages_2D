@@ -70,4 +70,31 @@ CONTAINS
         norm2 = sqrt(vect(1)**2+vect(2)**2)
     END FUNCTION
 
+    Function CheckIntersect(P1,P2, Q1,Q2)
+        IMPLICIT NONE
+        REAL(prec), DIMENSION(2) :: P1,P2, Q1,Q2 !(Ax,Bx,Ay,By)
+        REAL(prec) :: t,u
+        REAL(prec) :: a,b,c,d, k1,k2, det
+        LOGICAL  :: CheckIntersect
+
+        CheckIntersect = .FALSE.
+
+        a = P2(1) - P1(1); b = Q1(1) - Q2(1)
+        c = P2(2) - P1(1); d = Q1(2) - Q2(2)
+
+        k1= Q1(1) - P1(1); k2= Q1(2) - P1(2)
+        det = a*d -b*c
+        IF(abs(det) .LT. eps0) THEN 
+            CheckIntersect = .FALSE.
+            RETURN
+        END IF
+
+        t = (k1*d - k2*b)/det;       
+        u = (k2*a - k1*c)/det
+        print *,t,u
+        print *,( eps0 < t .AND. t < 1), (eps0 < u .AND. u < 1)
+        IF(( eps0 < t .AND. t < 1) .AND. (eps0 < u .AND. u < 1) ) CheckIntersect = .TRUE.
+
+    END Function CheckIntersect
+
 END MODULE mod_divers

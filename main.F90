@@ -8,7 +8,7 @@ PROGRAM main
     Msh%maxneigh=3
 
     print *, "Reading mesh file..."
-    CALL ReadMesh("carre_test.mesh",Msh)
+    CALL ReadMesh("carre_base.mesh",Msh)
     print *, "Mesh file read successfully."
 
     ! CALL OUTMESH(Msh)
