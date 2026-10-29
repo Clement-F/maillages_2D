@@ -55,4 +55,19 @@ CONTAINS
         det = v1(1)*v2(2)-v1(2)*v2(1)
     END FUNCTION det
 
+    FUNCTION normalized(vect)
+        IMPLICIT NONE
+        REAL(prec), DIMENSION(2), INTENT(IN) :: vect
+        REAL(prec), DIMENSION(2) :: normalized
+
+        normalized = vect/norm2(vect)
+    END FUNCTION
+
+    FUNCTION norm2(vect)
+        IMPLICIT NONE
+        REAL(prec), DIMENSION(2), INTENT(IN) :: vect
+        REAL(prec) :: norm2
+        norm2 = sqrt(vect(1)**2+vect(2)**2)
+    END FUNCTION
+
 END MODULE mod_divers
