@@ -43,6 +43,13 @@ module mod_Var
     INTEGER, ALLOCATABLE, DIMENSION(:,:) :: Edg                 ! Indices des deux sommets composant l'arete
     INTEGER, ALLOCATABLE, DIMENSION(:,:) :: EdgNeigh            ! Indices des deux cellules voisines de l'arete 
 
+    ! HASH TABLE
+    INTEGER :: SizHead                                          ! Maximum key value, the key is in [0,SizHead-1]
+    INTEGER :: NbrObj                                           ! Number of objects in the hash table
+    INTEGER, ALLOCATABLE, DIMENSION(:) ::  Head                 ! Head[key%(SizHead)] = link to the first object having this key in the LstObj list
+    INTEGER, ALLOCATABLE, DIMENSION(:,:) ::  LstObj             ! List of objects in the hash table (ver1,ver2,cell1,cell2) (cell2 !=0 if the edge is not on the border)
+
+
   END TYPE MESH
 
   REAL(prec), parameter :: eps0=0.1_prec**(2*prec-3)

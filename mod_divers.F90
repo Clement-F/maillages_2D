@@ -48,11 +48,16 @@ CONTAINS
 
     END SUBROUTINE unique_sort
 
-    FUNCTION det(v1,v2)
+    FUNCTION det(v1,v2,v3)
         IMPLICIT NONE
-        REAL(prec),DIMENSION(2), INTENT(IN) ::v1,v2
+
+        REAL(prec),DIMENSION(:), INTENT(IN) ::v1,v2
+        REAL(prec),DIMENSION(:), OPTIONAL, INTENT(IN) :: v3
         REAL(prec) :: det
+
         det = v1(1)*v2(2)-v1(2)*v2(1)
+        IF(present(v3)) &
+            & det = v1(1)*v2(2)*v3(3) + v1(2)*v2(3)*v3(1) + v1(3)*v2(1)*v3(2) - v1(3)*v2(2)*v3(1) - v2(3)*v3(2)*v1(1) - v3(3)*v1(2)*v2(1)
     END FUNCTION det
 
     FUNCTION normalized(vect)
@@ -91,8 +96,8 @@ CONTAINS
 
         t = (k1*d - k2*b)/det;       
         u = (k2*a - k1*c)/det
-        print *,t,u
-        print *,( eps0 < t .AND. t < 1), (eps0 < u .AND. u < 1)
+        ! print *,t,u
+        ! print *,( eps0 < t .AND. t < 1), (eps0 < u .AND. u < 1)
         IF(( eps0 < t .AND. t < 1) .AND. (eps0 < u .AND. u < 1) ) CheckIntersect = .TRUE.
 
     END Function CheckIntersect
