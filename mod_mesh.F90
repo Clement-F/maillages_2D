@@ -231,7 +231,7 @@ MODULE mod_mesh
         WRITE(21,"(A)") "DATASET POLYDATA"
         WRITE(21,"(A,I10,X,A)") "POINTS",Msh%NB_Ver,"float"
         DO i=1, Msh%NB_Ver
-        WRITE(21,"(F12.5,F12.5,F12.5)") Msh%Coord(i,1:2),0D0
+        WRITE(21,"(F16.8,F16.8,F16.8)") Msh%Coord(i,1:2),0D0
         ENDDO
         write(21,"(A)") blank
 
@@ -364,7 +364,7 @@ MODULE mod_mesh
                 Msh%Nb_EBdr = Msh%Nb_EBdr + 1
                 ! write(*,fmt='("(",i3,",",i3,") is on the edge" )') iVer1, iVer2
 
-                Msh%NbNeigh(iVer1) = Msh%NbNeigh(iVer1) - 1
+                ! Msh%NbNeigh(iVer1) = Msh%NbNeigh(iVer1) - 1
                 Msh%Bdr(Msh%Nb_EBdr) = iEdg
             END IF
 
@@ -383,6 +383,8 @@ MODULE mod_mesh
                 ! print *, iVer1," Is On Boundary"
                 iVer2 = iVer2 + 1
                 Msh%Vbdr(iVer2) = iVer1
+                
+                Msh%NbNeigh(iVer1) = Msh%NbNeigh(iVer1) - 1
             END IF
         END DO
 
@@ -466,7 +468,7 @@ MODULE mod_mesh
         print *,"using msh_neighbors function"
 
         Msh%SizHead = 2*Msh%NB_Ver
-        Msh%Nb_Edg = Msh%NB_Ver + Msh%Nb_Cell ; Msh%NbrObj = 0;
+        Msh%Nb_Edg = Msh%NB_Ver + Msh%Nb_Cell +500 ; Msh%NbrObj = 0;
 
         print *, "Check allocation"
 
@@ -632,7 +634,7 @@ MODULE mod_mesh
             IF (i_hsh == 0) THEN
 
                 IF(Msh%NbrObj >= Msh%Nb_Edg) THEN
-                    print *, "Error: Exceeded maximum number of edges."
+                    print *, "Error: Exceeded maximum number of edges.", Msh%NbrObj
                     STOP
                 END IF
                 key = iVer1 + iVer2
@@ -670,17 +672,29 @@ MODULE mod_mesh
 
         ! Barycenter
         DO iTri = 1, Msh%Nb_Cell
-            Msh%Center(iTri,1) = (Msh%Coord(Msh%Sommets(iTri,1),1) + Msh%Coord(Msh%Sommets(iTri,2),1) + Msh%Coord(Msh%Sommets(iTri,3),1)) / 3.0_prec
-            Msh%Center(iTri,2) = (Msh%Coord(Msh%Sommets(iTri,1),2) + Msh%Coord(Msh%Sommets(iTri,2),2) + Msh%Coord(Msh%Sommets(iTri,3),2)) / 3.0_prec
+            Msh%Center(iTri,1) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),1)) / 3.0_prec
+            Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
         END DO
 
         ! Circumscribed circle Msh%Center
-        DO iTri = 1, Msh%Nb_Cell
-            A = Msh%Coord(Msh%Sommets(iTri,1),:)
-            B = Msh%Coord(Msh%Sommets(iTri,2),:)
-            C = Msh%Coord(Msh%Sommets(iTri,3),:)
-            Msh%Center(iTri,:) = Circumcenter(A, B, C)
-        END DO
+        ! DO iTri = 1, Msh%Nb_Cell
+        !     A = Msh%Coord(Msh%Sommets(iTri,1),:)
+        !     B = Msh%Coord(Msh%Sommets(iTri,2),:)
+        !     C = Msh%Coord(Msh%Sommets(iTri,3),:)
+        !     Msh%Center(iTri,:) = Circumcenter(A, B, C)
+
+        !     IF(Msh%CIsOnBdr(iTri)) THEN ! .AND. IF center is not in triangle
+        !         Msh%Center(iTri,1) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),1)) / 3.0_prec
+        !         Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
+        !     END IF
+        ! END DO
+
+        ! Msh%Center(:,1) = max(Msh%Center(:,1), minval(Msh%Coord(:,1)))
+        ! Msh%Center(:,2) = max(Msh%Center(:,2), minval(Msh%Coord(:,2)))
+        ! Msh%Center(:,1) = min(Msh%Center(:,1), maxval(Msh%Coord(:,1)))
+        ! Msh%Center(:,2) = min(Msh%Center(:,2), maxval(Msh%Coord(:,2)))
+
+
 
     END SUBROUTINE Calc_center
 
@@ -702,10 +716,10 @@ MODULE mod_mesh
         Type(MESH), INTENT(IN)  :: Msh_P
         TYPE(MESH), INTENT(OUT) :: Msh
 
-        INTEGER :: i,j, ind
-        INTEGER :: iVer,jVer, iCell,jCell, iEdg, jEdg
+        INTEGER :: i,j
+        INTEGER :: iVer,jVer, iCell,jCell, iEdg
         INTEGER, DIMENSION(3) :: ID
-        REAL(prec), DIMENSION(2) :: i_To_j,j_To_k, Coord_j, i_To_jd, jd_To_kd, Coord_jd
+        REAL(prec), DIMENSION(2) :: i_To_j,j_To_k, Coord_j, i_To_jd
         INTEGER :: size
 
         Msh%Nb_Cell = Msh_P%Nb_Ver
@@ -726,7 +740,7 @@ MODULE mod_mesh
         ! print *,"nb Edgbdr",Msh_P%Nb_EBdr ,"Nb Vbdr", Msh_P%Nb_VBdr
         ! print *,Msh_P%VNeigh (1,:)
         ! print *,Msh_P%CNeigh(1,:)
-        
+
         Msh%Vref   (1:Msh_P%Nb_Cell  )  = Msh_P%cref;           Msh%Cref   = Msh_P%Vref
         Msh%VNeigh (1:Msh_P%Nb_Cell,:)  = Msh_P%CNeigh;         Msh%CNeigh = Msh_P%VNeigh
         Msh%NbNeigh(1:Msh_P%Nb_Cell  )  = Msh_P%NbSom;          
@@ -735,6 +749,10 @@ MODULE mod_mesh
         Msh%Ver2Cell = 0   ;    Msh%Sommets =0
         Msh%Ver2Cell(1:Msh_P%Nb_Cell,:) = Msh_P%Sommets;        
         Msh%Sommets= Msh_P%Ver2Cell
+
+        DO i=1,Msh%Nb_Cell
+            CALL Gift_wrapping(i,Msh)
+        END DO
 
         DO i=1,Msh_P%Nb_Vbdr
             iVer = Msh_P%VBdr(i)
@@ -745,11 +763,10 @@ MODULE mod_mesh
             Msh%Coord   (size+i,:) = Msh_P%Coord(iVer,:)
 
             iCell = iVer;
-            CALL Gift_Wrapping(iCell,Msh)
-            print *,"Ver", iVer, "Som", Msh%Sommets(iVer,:)
+            ! print *,"Ver", iVer, "Som", Msh%Sommets(iVer,1:Msh%NbSom(iVer))
             Msh%NbSom(iCell) = Msh%NbSom(iCell) +1 
             Msh%Sommets(iCell,Msh%NbSom(iCell))   = size+i
-            print *,"Ver", iVer, "Som", Msh%Sommets(iVer,:)
+            ! print *,"Ver", iVer, "Som", Msh%Sommets(iVer,1:Msh%NbSom(iVer))
         END DO
         DO i=1,Msh_P%Nb_Ebdr
             iEdg = Msh_P%Bdr(i)
@@ -762,12 +779,12 @@ MODULE mod_mesh
             iCell = Msh_P%Edg(iEdg,1)
             Msh%NbSom(iCell) = Msh%NbSom(iCell) +1 
             Msh%Sommets(iCell,Msh%NbSom(iCell))   = size +i
-            print *,"Edge", iCell, "Som", Msh%Sommets(iCell,:)
+            ! print *,"Edge", iCell, "Som", Msh%Sommets(iCell,1:Msh%NbSom(iCell))
 
             iCell = Msh_P%Edg(iEdg,2)
             Msh%NbSom(iCell) = Msh%NbSom(iCell) +1 
             Msh%Sommets(iCell,Msh%NbSom(iCell))   = size +i
-            print *,"Edge", iCell, "Som", Msh%Sommets(iCell,:)
+            ! print *,"Edge", iCell, "Som", Msh%Sommets(iCell,1:Msh%NbSom(iCell))
         END DO
 
         ! -----------------------------
@@ -783,9 +800,11 @@ MODULE mod_mesh
 
         ! print*, Msh%Nb_Ver
         ! print*, Msh_P%Nb_Vbdr, Msh_P%Nb_Ebdr, Msh_P%Nb_Cell
-        size = Msh_P%Nb_Cell
         DO i=1,Msh_P%Nb_Vbdr
             iVer = Msh_P%VBdr(i)
+            Msh%NbSom(iVer) = Msh%NbSom(iVer) - 3
+            ID(1:3) = Msh%Sommets(iVer,Msh%NbSom(iVer)+1:Msh%NbSom(iVer)+3)
+
             j=1
             jVer = Msh_P%VNeigh(iVer,j)
             DO WHILE( .NOT. Msh_P%VIsOnBdr(jVer) )
@@ -796,44 +815,46 @@ MODULE mod_mesh
             jCell = Msh_P%LstObj(iEdg,3)
 
             Coord_j = (Msh_P%Coord(jVer,:) + Msh_P%Coord(iVer,:))/2._prec
-            i_To_j = Coord_j - Msh_P%Coord(iVer,:)
+            i_To_j  = Coord_j            - Msh_P%Coord(iVer,:)
+            i_To_jd = Msh%Coord(ID(3),:) - Msh_P%Coord(iVer,:)
 
             j_To_k = Msh_P%Center(jCell,:) - Coord_j
 
-            DO WHILE( .NOT. Msh_P%VIsOnBdr(jVer) )
-                jVer = Msh_P%VNeigh(iVer,j)
-                j = j + 1
-            END DO
-            iEdg = hash_find(iVer,jVer)
-            jCell = Msh_P%LstObj(iEdg,3)
-
-            ! Coord_jd = (Msh_P%Coord(jVer,:) + Msh_P%Coord(iVer,:))/2._prec
-
-            ! Msh%Coord(size +1 ,:) = Coord_j
-            ! Msh%Coord(size +2 ,:) = Coord_jd
-            ! Msh%Coord(size +3 ,:) = Msh_P%Coord(iVer,:)
-
-            print *,jCell
-            print *,Msh%Sommets(iVer,:)
-            Msh%NbSom(iVer) = Msh%NbSom(iVer) - 3
+            ! print *,"jc :",jCell, "ID", ID(3)
+            ! print *,Msh%Sommets(iVer,1:Msh%NbSom(iVer))
             ! print *,Msh%Sommets(iVer,Msh%NbSom(iVer)+1:Msh%NbSom(iVer)+3)
-            ID(1:3) = Msh%Sommets(iVer,Msh%NbSom(iVer)+1:Msh%NbSom(iVer)+3)
             Msh%Sommets(iVer,Msh%NbSom(iVer)+1:Msh%NbSom(iVer)+3) = 0
 
-            IF (det(i_To_j,j_To_k) > eps0) THEN
-                print *, "det(i_To_j,j_To_k) > eps0"
-                CALL Insert_Vertex_onCell(ID(2),jCell,iVer,Msh) ! on place j
-                CALL Insert_Vertex_onCell(ID(1),jCell,iVer,Msh) ! on place i
-                CALL Insert_Vertex_onCell(ID(3),jCell,iVer,Msh) ! on place jd 
+            IF (det(i_To_j,j_To_k) > eps0 ) THEN
+                ! print *, "det(i_To_j,j_To_k) > eps0"
+                IF(norm2(i_To_j-i_To_jd) .LT. eps0 )THEN
+                    ! print *,"j is jd", ID(3)
+                    CALL Insert_Vertex_onCell(ID(2),jCell,iVer,Msh,'aft') ! on place jd 
+                    CALL Insert_Vertex_onCell(ID(1),jCell,iVer,Msh,'aft') ! on place i
+                    CALL Insert_Vertex_onCell(ID(3),jCell,iVer,Msh,'aft') ! on place j
+                ELSE 
+                    ! print *,"j is not jd", ID(3)
+                    CALL Insert_Vertex_onCell(ID(3),jCell,iVer,Msh,'aft') ! on place j
+                    CALL Insert_Vertex_onCell(ID(1),jCell,iVer,Msh,'aft') ! on place i
+                    CALL Insert_Vertex_onCell(ID(2),jCell,iVer,Msh,'aft') ! on place jd 
+                END IF
             ELSE
-                print *, "det(i_To_j,j_To_k) <= eps0"
-                CALL Insert_Vertex_onCell(ID(3),jCell,iVer,Msh) ! on place jd
-                CALL Insert_Vertex_onCell(ID(1),jCell,iVer,Msh) ! on place i
-                CALL Insert_Vertex_onCell(ID(2),jCell,iVer,Msh) ! on place j 
+                ! print *, "det(i_To_j,j_To_k) <= eps0"
+                IF(norm2(i_To_j-i_To_jd) .LT. eps0 )THEN
+                    print *,"j is jd", ID(3)
+                    CALL Insert_Vertex_onCell(ID(3),jCell,iVer,Msh,'aft') ! on place j
+                    CALL Insert_Vertex_onCell(ID(1),jCell,iVer,Msh,'aft') ! on place i
+                    CALL Insert_Vertex_onCell(ID(2),jCell,iVer,Msh,'aft') ! on place jd 
+                ELSE
+                    ! print *,"j is not jd", ID(3)
+                    CALL Insert_Vertex_onCell(ID(3),jCell,iVer,Msh,'bef') ! on place j
+                    CALL Insert_Vertex_onCell(ID(1),jCell,iVer,Msh,'bef') ! on place i
+                    CALL Insert_Vertex_onCell(ID(2),jCell,iVer,Msh,'bef') ! on place jd 
+                END IF
             END IF
 
-            print *,Msh%Sommets(iVer,:)
-            print *,"---------------"
+            ! print *,Msh%Sommets(iVer,1:Msh%NbSom(iVer))
+            ! print *,"---------------"
             size = size + 3
         END DO
 
@@ -844,8 +865,8 @@ MODULE mod_mesh
         ! print *,"Cleaning the Mesh"
         ! CALL Correct_Mesh(Msh)
 
-        print *, "adding the neighbors"
-        CALL msh_neighbors(Msh)
+        ! print *, "adding the neighbors"
+        ! CALL msh_neighbors(Msh)
         
 
         ! rajouter les points au bords du domaine.
@@ -874,18 +895,25 @@ MODULE mod_mesh
 
         END FUNCTION hash_find
 
-        SUBROUTINE Insert_Vertex_onCell(iVer,jVer,nCell,Msh)   ! Insert vertex i behind Vertex j in Sommets(nCell,:)
+        SUBROUTINE Insert_Vertex_onCell(iVer,jVer,nCell,Msh,bef_aft)   ! Insert vertex i behind Vertex j in Sommets(nCell,:)
             IMPLICIT NONE
             INTEGER,INTENT(IN) :: iVer,jVer,nCell
             TYPE(MESH), INTENT(INOUT) :: Msh
             INTEGER, DIMENSION(Msh%NbSom(nCell)) :: temp_Sommets
             INTEGER :: loc_j
+            Character(len=3), INTENT(IN), OPTIONAL :: bef_aft
 
             ! print *,"insert ",iVer,jVer,'in cell',nCell
             ! write(*,'("insert ",i3,1x,i3,1x,"in cell",i3)') iVer,jVer,nCell
             ! print *,Msh%Sommets(nCell,1:Msh%NbSom(nCell))
             temp_Sommets = Msh%Sommets(nCell,1:Msh%NbSom(nCell))
             loc_j = FINDLOC(Msh%Sommets(nCell,:),jVer,DIM=1)
+
+            ! print *,loc_j
+            IF(bef_aft == 'bef') THEN
+                loc_j = loc_j - 1
+            END IF
+            ! print *,loc_j
             Msh%Sommets(nCell,1:loc_j) = temp_Sommets(1:loc_j)
             Msh%Sommets(nCell,loc_j+1) = iVer
             Msh%Sommets(nCell,loc_j+2:Msh%NbSom(nCell)+1) = temp_Sommets(loc_j+1:Msh%NbSom(nCell))
@@ -907,7 +935,16 @@ MODULE mod_mesh
             ! print *, "Gift wrapping ",nCell,'nbsom :', Msh%NbSom(nCell)
             ! print *, Msh%Sommets(nCell,:)
 
-            IF(Msh%NbSom(nCell) <= 2) THEN  
+            IF(Msh%NbSom(nCell) == 0) THEN
+                print *, "Error: Cell", nCell, "has no vertices."
+                STOP
+            END IF
+
+            IF(Msh%NbSom(nCell) == 1) THEN
+                RETURN
+            END IF
+
+            IF(Msh%NbSom(nCell) == 2) THEN  
                 vect      = Msh%Center(nCell,:) - Msh%Coord(Msh%Sommets(nCell,1),:)
                 vect_next = Msh%Coord(Msh%Sommets(nCell,2),:) - Msh%Center(nCell,:)
                 IF(det(vect,vect_next) < 0._prec) THEN
@@ -1046,8 +1083,7 @@ MODULE mod_mesh
         ! END DO
 
         DO iCell=1,Msh%Nb_Cell
-            ! IF(.NOT. IsConvex(iCell)) 
-            CALL Gift_Wrapping(iCell)
+            IF(.NOT. IsConvex(iCell))        CALL Gift_Wrapping(iCell)
         END DO
 
         Contains

@@ -8,14 +8,14 @@ PROGRAM main
     Msh%maxneigh=3
 
     print *, "Reading mesh file..."
-    CALL ReadMesh("Meshes/carre_test.mesh",Msh)
+    CALL ReadMesh("Meshes/nacaAdap.mesh",Msh)
     print *, "Mesh file read successfully."
 
    
     CALL IsDelauney(Msh)
 
-    CALL OUTMESH(Msh)
-    ! CALL Correct_Mesh(Msh)
+    ! CALL OUTMESH(Msh)
+    CALL Correct_Mesh(Msh)
 
     print *,"Dual mesh writing"
     CALL Voronoi(Msh,Msh_dual)
