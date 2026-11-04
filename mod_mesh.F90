@@ -287,10 +287,10 @@ MODULE mod_mesh
                 iVer1 = Msh%Sommets(iTri, tri2edg(iEdg,1))
                 iVer2 = Msh%Sommets(iTri, tri2edg(iEdg,2))
 
-                j_hsh = hash_find(iVer1,iVer2)
+                j_hsh = hash_find(iVer1,iVer2,Msh)
                 ! print *, "Hash find result for edge (", iVer1, ",", iVer2, "):", j_hsh
                 IF(j_hsh /= 0) THEN
-                    CALL hash_add(iVer1,iVer2,iTri,j_hsh)
+                    CALL hash_add(iVer1,iVer2,iTri,Msh,j_hsh)
 
                     jTri = Msh%LstObj(j_hsh,3)
                     Msh%CNeigh(iTri,iEdg+1) = jTri
@@ -302,7 +302,7 @@ MODULE mod_mesh
                         END IF
                     END DO
                 ELSE
-                    CALL hash_add(iVer1,iVer2,iTri,0)
+                    CALL hash_add(iVer1,iVer2,iTri,Msh,0)
                 END IF
             END DO
         END DO
@@ -390,66 +390,6 @@ MODULE mod_mesh
 
         print *, "Neighbors calculated successfully."
 
-        Contains
-        FUNCTION hash_find(iVer1, iVer2) RESULT(j_hsh)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: iVer1, iVer2
-            INTEGER :: j_hsh, key
-
-            key = iVer1 + iVer2
-            ! print *,key
-            j_hsh = Msh%Head(key)
-
-            DO WHILE (j_hsh /= 0)
-                ! print *,"looping through hash list, j_hsh:", j_hsh
-                IF ((Msh%LstObj(j_hsh,1) == iVer1 .AND. Msh%LstObj(j_hsh,2) == iVer2) .OR. &
-                    (Msh%LstObj(j_hsh,1) == iVer2 .AND. Msh%LstObj(j_hsh,2) == iVer1)) THEN
-                    RETURN
-                END IF
-                j_hsh = Msh%LstObj(j_hsh,5)
-            END DO
-
-            j_hsh = 0
-
-        END FUNCTION hash_find
-
-        SUBROUTINE hash_add(iVer1, iVer2, iTri, i_hsh)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: iVer1, iVer2, iTri, i_hsh
-            INTEGER :: key
-
-
-            ! i_hsh is a initial guess. it should be 0 by default, 
-            ! but if you have already run hash_find, you can bypass the find to imput the element at i_hsh
-
-            ! if(i_hsh==0)  i_hsh = hash_find(hsh,iVer1,iVer2); ! check if the element isn't in the hash_list already
-
-            IF (i_hsh == 0) THEN
-
-                IF(Msh%NbrObj >= Msh%Nb_Edg) THEN
-                    print *, "Error: Exceeded maximum number of edges."
-                    STOP
-                END IF
-                key = iVer1 + iVer2
-                Msh%NbrObj = Msh%NbrObj + 1
-                Msh%LstObj(Msh%NbrObj,1) = iVer1
-                Msh%LstObj(Msh%NbrObj,2) = iVer2
-                Msh%LstObj(Msh%NbrObj,3) = iTri
-                Msh%LstObj(Msh%NbrObj,5) = Msh%Head(key)
-                Msh%Head(key) = Msh%NbrObj
-
-                Msh%Edg(Msh%NbrObj,1) = iVer1    
-                Msh%Edg(Msh%NbrObj,2) = iVer2
-                Msh%NbNeigh(iVer1) = Msh%NbNeigh(iVer1) + 1
-                Msh%NbNeigh(iVer2) = Msh%NbNeigh(iVer2) + 1
-                Msh%EdgNeigh(Msh%NbrObj,1) = iTri
-
-            ELSE
-                Msh%LstObj(i_hsh,4) = iTri
-                Msh%EdgNeigh(i_hsh,2) = iTri
-            END IF
-
-        END SUBROUTINE hash_add
 
     END SUBROUTINE msh_neighbors_Tri
 
@@ -498,10 +438,10 @@ MODULE mod_mesh
             DO iEdg = 1, Msh%NbSom(iCell)
                 iVer1 = Msh%Sommets(iCell, mod(iEdg,   Msh%NbSom(iCell))+1)
                 iVer2 = Msh%Sommets(iCell, mod(iEdg+1, Msh%NbSom(iCell))+1)
-                j = hash_find(iVer1,iVer2)
+                j = hash_find(iVer1,iVer2,Msh)
                 print *, "Hash find result for edge",iEdg,"(", iVer1, ",", iVer2, "):", j
                 IF(j /= 0) THEN
-                    CALL hash_add(iVer1,iVer2,iCell,j)
+                    CALL hash_add(iVer1,iVer2,iCell,Msh,j)
 
                     jPol = Msh%LstObj(j,3)
                     Msh%CNeigh(iCell,iEdg) = jPol
@@ -513,7 +453,7 @@ MODULE mod_mesh
                         END IF
                     END DO
                 ELSE
-                    CALL hash_add(iVer1,iVer2,iCell,0)
+                    CALL hash_add(iVer1,iVer2,iCell,Msh,0)
                 END IF
             END DO
         END DO
@@ -597,106 +537,34 @@ MODULE mod_mesh
 
         print *, "Neighbors calculated successfully."
 
-        Contains
-        FUNCTION hash_find(iVer1, iVer2) RESULT(j_hsh)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: iVer1, iVer2
-            INTEGER :: j_hsh, key
-
-            key = iVer1 + iVer2
-            ! print *,key
-            j_hsh = Msh%Head(key)
-
-            DO WHILE (j_hsh /= 0)
-                ! print *,"looping through hash list, j_hsh:", j_hsh
-                IF ((Msh%LstObj(j_hsh,1) == iVer1 .AND. Msh%LstObj(j_hsh,2) == iVer2) .OR. &
-                    (Msh%LstObj(j_hsh,1) == iVer2 .AND. Msh%LstObj(j_hsh,2) == iVer1)) THEN
-                    RETURN
-                END IF
-                j_hsh = Msh%LstObj(j_hsh,5)
-            END DO
-
-            j_hsh = 0
-
-        END FUNCTION hash_find
-
-        SUBROUTINE hash_add(iVer1, iVer2, iCell, i_hsh)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: iVer1, iVer2, iCell, i_hsh
-            INTEGER :: key
-
-
-            ! i_hsh is a initial guess. it should be 0 by default, 
-            ! but if you have already run hash_find, you can bypass the find to imput the element at i_hsh
-
-            ! if(i_hsh==0)  i_hsh = hash_find(hsh,iVer1,iVer2); ! check if the element isn't in the hash_list already
-
-            IF (i_hsh == 0) THEN
-
-                IF(Msh%NbrObj >= Msh%Nb_Edg) THEN
-                    print *, "Error: Exceeded maximum number of edges.", Msh%NbrObj
-                    STOP
-                END IF
-                key = iVer1 + iVer2
-                Msh%NbrObj = Msh%NbrObj + 1
-                Msh%LstObj(Msh%NbrObj,1) = iVer1
-                Msh%LstObj(Msh%NbrObj,2) = iVer2
-                Msh%LstObj(Msh%NbrObj,3) = iCell
-                Msh%LstObj(Msh%NbrObj,5) = Msh%Head(key)
-                Msh%Head(key) = Msh%NbrObj
-
-                Msh%Edg(Msh%NbrObj,1) = iVer1    
-                Msh%Edg(Msh%NbrObj,2) = iVer2
-                Msh%NbNeigh(iVer1) = Msh%NbNeigh(iVer1) + 1
-                Msh%NbNeigh(iVer2) = Msh%NbNeigh(iVer2) + 1
-                Msh%EdgNeigh(Msh%NbrObj,1) = iCell
-
-            ELSE
-                Msh%LstObj(i_hsh,4) = iCell
-                Msh%EdgNeigh(i_hsh,2) = iCell
-            END IF
-
-        END SUBROUTINE hash_add
-
 
     END SUBROUTINE msh_neighbors
 
-    SUBROUTINE Calc_center(Msh)
+    SUBROUTINE OUTMESH(Msh)
         IMPLICIT NONE
-        TYPE(MESH), INTENT(INOUT) :: Msh
-        INTEGER :: iTri
-        REAL(prec), DIMENSION(2) :: A, B, C
-        
-        IF(ALLOCATED(Msh%Center)) DEALLOCATE(Msh%Center)
-        ALLOCATE(Msh%Center(Msh%Nb_Cell,2))
 
-        ! Circumscribed circle Msh%Center
-        DO iTri = 1, Msh%Nb_Cell
-            A = Msh%Coord(Msh%Sommets(iTri,1),:)
-            B = Msh%Coord(Msh%Sommets(iTri,2),:)
-            C = Msh%Coord(Msh%Sommets(iTri,3),:)
-            Msh%Center(iTri,:) = Circumcenter(A, B, C)
+        TYPE(MESH) :: Msh
+        INTEGER ::iVer,iEdg,iCell
 
-            IF(.NOT. Is_inside_triangle(A, B, C, Msh%Center(iTri,:))) THEN
-                Msh%Center(iTri,1) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),1)) / 3.0_prec
-                Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
-            END IF
+        print *,"Vertex"
+        DO iVer=1,Msh%Nb_Ver
+            print *,'-----------------------------------------'
+            print *,iVer,'on Bdr:',Msh%VIsOnBdr(iVer),'Neighbors :',Msh%VNeigh(iVer,:)
+            print *,"between cells :",Msh%Ver2Cell(iVer,:)
+            write(*,'("at coord", 2f8.4 )')Msh%Coord(iVer,:)
         END DO
 
-    END SUBROUTINE Calc_center
+        print *,"========================================================="
+        print *,"========================================================="
+        print *,"Cells"
+        DO iCell=1,Msh%Nb_Cell
+            print *,'--------------'
+            print *,iCell,'on Bdr:',Msh%CIsOnBdr(iCell),'Neighbors :',Msh%CNeigh(iCell,:)
+            print *,"made of :",Msh%Sommets(iCell,:)
+            write(*,'("at coord", 2f8.4 )')Msh%Center(iCell,:)
+        END DO
 
-    FUNCTION Circumcenter(A, B, C)
-        IMPLICIT NONE
-        REAL(prec), DIMENSION(2), INTENT(IN) :: A, B, C
-        REAL(prec), DIMENSION(2) :: circumcenter
-        REAL(prec) :: D
-
-        D = 2.0_prec * (A(1)*(B(2)-C(2)) + B(1)*(C(2)-A(2)) + C(1)*(A(2)-B(2)))
-
-        circumcenter(1) = ((A(1)**2 + A(2)**2)*(B(2)-C(2)) + (B(1)**2 + B(2)**2)*(C(2)-A(2)) + (C(1)**2 + C(2)**2)*(A(2)-B(2))) / D
-        circumcenter(2) = ((A(1)**2 + A(2)**2)*(C(1)-B(1)) + (B(1)**2 + B(2)**2)*(A(1)-C(1)) + (C(1)**2 + C(2)**2)*(B(1)-A(1))) / D
-
-    END FUNCTION Circumcenter
+    END SUBROUTINE
 
     SUBROUTINE Voronoi(Msh_P,Msh)
         IMPLICIT NONE
@@ -723,37 +591,36 @@ MODULE mod_mesh
         ALLOCATE(Msh%Vref(Msh%NB_Ver), Msh%NbNeigh(Msh%NB_Ver), Msh%VNeigh(Msh%NB_Ver, Msh%max_neigh_Ver), Msh%Ver2Cell(Msh%NB_Ver, Msh%max_neigh_Ver))
         ALLOCATE(Msh%Edg(Msh%Nb_Edg,2),Msh%EdgNeigh(Msh%Nb_Edg,2))
 
-        ! print *,Msh_P%max_neigh_Ver , Msh_P%maxneigh
-        ! print *,"nb Edgbdr",Msh_P%Nb_EBdr ,"Nb Vbdr", Msh_P%Nb_VBdr
-        ! print *,Msh_P%VNeigh (1,:)
-        ! print *,Msh_P%CNeigh(1,:)
-
         Msh%Vref   (1:Msh_P%Nb_Cell  )  = Msh_P%cref;           Msh%Cref   = Msh_P%Vref
         Msh%VNeigh (1:Msh_P%Nb_Cell,:)  = Msh_P%CNeigh;         Msh%CNeigh = Msh_P%VNeigh
-        Msh%NbNeigh(1:Msh_P%Nb_Cell  )  = Msh_P%NbSom;          
-        Msh%NbSom  = Msh_P%NbNeigh
+        Msh%NbNeigh(1:Msh_P%Nb_Cell  )  = Msh_P%NbSom;          Msh%NbSom  = Msh_P%NbNeigh
         Msh%Coord  (1:Msh_P%Nb_Cell,:)  = Msh_P%Center;         Msh%Center = Msh_P%Coord       
+
         Msh%Ver2Cell = 0   ;    Msh%Sommets =0
-        Msh%Ver2Cell(1:Msh_P%Nb_Cell,:) = Msh_P%Sommets;        
-        Msh%Sommets= Msh_P%Ver2Cell
+        Msh%Ver2Cell(1:Msh_P%Nb_Cell,:) = Msh_P%Sommets;        Msh%Sommets= Msh_P%Ver2Cell
 
         DO i=1,Msh%Nb_Cell
+            IF(i==4682) THEN
+                print *,"Cell 4682 : ",Msh%Sommets(i,1:Msh%NbSom(i)), IsConvex(i,Msh)
+                
+            END IF
+
             CALL Gift_wrapping(i,Msh)
+
+            IF(i==4682) THEN
+                print *,"Cell 4682 : ",Msh%Sommets(i,1:Msh%NbSom(i))
+            END IF
         END DO
 
         DO i=1,Msh_P%Nb_Vbdr
             iVer = Msh_P%VBdr(i)
             size = Msh_P%Nb_Cell
             Msh%Vref    (size+i)   = 0
-            ! Msh%VNeigh  (size+i,:) = 0
-            ! Msh%NbNeigh (size+i)   = 2
             Msh%Coord   (size+i,:) = Msh_P%Coord(iVer,:)
 
             iCell = iVer;
-            ! print *,"Ver", iVer, "Som", Msh%Sommets(iVer,1:Msh%NbSom(iVer))
             Msh%NbSom(iCell) = Msh%NbSom(iCell) +1 
             Msh%Sommets(iCell,Msh%NbSom(iCell))   = size+i
-            ! print *,"Ver", iVer, "Som", Msh%Sommets(iVer,1:Msh%NbSom(iVer))
         END DO
         DO i=1,Msh_P%Nb_Ebdr
             iEdg = Msh_P%Bdr(i)
@@ -766,12 +633,10 @@ MODULE mod_mesh
             iCell = Msh_P%Edg(iEdg,1)
             Msh%NbSom(iCell) = Msh%NbSom(iCell) +1 
             Msh%Sommets(iCell,Msh%NbSom(iCell))   = size +i
-            ! print *,"Edge", iCell, "Som", Msh%Sommets(iCell,1:Msh%NbSom(iCell))
 
             iCell = Msh_P%Edg(iEdg,2)
             Msh%NbSom(iCell) = Msh%NbSom(iCell) +1 
             Msh%Sommets(iCell,Msh%NbSom(iCell))   = size +i
-            ! print *,"Edge", iCell, "Som", Msh%Sommets(iCell,1:Msh%NbSom(iCell))
         END DO
 
         ! -----------------------------
@@ -798,7 +663,7 @@ MODULE mod_mesh
                 jVer = Msh_P%VNeigh(iVer,j)
                 j = j + 1
             END DO
-            iEdg = hash_find(iVer,jVer) 
+            iEdg = hash_find(iVer,jVer,Msh_P) 
             jCell = Msh_P%LstObj(iEdg,3)
 
             Coord_j = (Msh_P%Coord(jVer,:) + Msh_P%Coord(iVer,:))/2._prec
@@ -840,204 +705,110 @@ MODULE mod_mesh
                 END IF
             END IF
 
-            ! print *,Msh%Sommets(iVer,1:Msh%NbSom(iVer))
-            ! print *,"---------------"
             size = size + 3
         END DO
 
-        ! ADD COMMENT 
-        ! Msh%NbSom(:) = Msh%NbSom(:) -1
-
-
-        ! print *,"Cleaning the Mesh"
-        ! CALL Correct_Mesh(Msh)
-
-        ! print *, "adding the neighbors"
+        print *, "Calculating neighbors for the dual mesh"
         ! CALL msh_neighbors(Msh)
-        
 
-        ! rajouter les points au bords du domaine.
 
-        CONTAINS 
+    END SUBROUTINE
 
-        FUNCTION hash_find(iVer1, iVer2) RESULT(j_hsh)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: iVer1, iVer2
-            INTEGER :: j_hsh, key
+    SUBROUTINE Gift_Wrapping(nCell,Msh)
+        IMPLICIT NONE
+        INTEGER, INTENT(IN) :: nCell
+        TYPE(MESH), INTENT(INOUT) :: Msh
+        REAL(prec),DIMENSION(:,:), ALLOCATABLE :: Coord_Cell
+        REAL(prec),DIMENSION(2) :: Coord_i,Coord_j, Coord_start, vect, vect_next,vect_prev
+        INTEGER, DIMENSION(Msh%NbSom(nCell)) :: Convex_hull
+        INTEGER :: Ver_i,Ver_j, Start_Point,Next_Point
+        INTEGER :: i,j, NbPoints
 
-            key = iVer1 + iVer2
-            ! print *,key
-            j_hsh = Msh_P%Head(key)
+        ! print *,"-----------------"
+        ! print *, "Gift wrapping ",nCell,'nbsom :', Msh%NbSom(nCell)
+        ! print *, Msh%Sommets(nCell,:)
 
-            DO WHILE (j_hsh /= 0)
-                ! print *,"looping through hash list, j_hsh:", j_hsh
-                IF ((Msh_P%LstObj(j_hsh,1) == iVer1 .AND. Msh_P%LstObj(j_hsh,2) == iVer2) .OR. &
-                    (Msh_P%LstObj(j_hsh,1) == iVer2 .AND. Msh_P%LstObj(j_hsh,2) == iVer1)) THEN
-                    RETURN
-                END IF
-                j_hsh = Msh_P%LstObj(j_hsh,5)
-            END DO
+        IF(Msh%NbSom(nCell) == 0) THEN
+            print *, "Error: Cell", nCell, "has no vertices."
+            STOP
+        END IF
 
-            j_hsh = 0
+        IF(Msh%NbSom(nCell) == 1) THEN
+            RETURN
+        END IF
 
-        END FUNCTION hash_find
-
-        SUBROUTINE Insert_Vertex_onCell(iVer,jVer,nCell,Msh,bef_aft)   ! Insert vertex i behind Vertex j in Sommets(nCell,:)
-            IMPLICIT NONE
-            INTEGER,INTENT(IN) :: iVer,jVer,nCell
-            TYPE(MESH), INTENT(INOUT) :: Msh
-            INTEGER, DIMENSION(Msh%NbSom(nCell)) :: temp_Sommets
-            INTEGER :: loc_j
-            Character(len=3), INTENT(IN), OPTIONAL :: bef_aft
-
-            ! print *,"insert ",iVer,jVer,'in cell',nCell
-            ! write(*,'("insert ",i3,1x,i3,1x,"in cell",i3)') iVer,jVer,nCell
-            ! print *,Msh%Sommets(nCell,1:Msh%NbSom(nCell))
-            temp_Sommets = Msh%Sommets(nCell,1:Msh%NbSom(nCell))
-            loc_j = FINDLOC(Msh%Sommets(nCell,:),jVer,DIM=1)
-
-            ! print *,loc_j
-            IF(bef_aft == 'bef') THEN
-                loc_j = loc_j - 1
+        IF(Msh%NbSom(nCell) == 2) THEN  
+            vect      = Msh%Center(nCell,:) - Msh%Coord(Msh%Sommets(nCell,1),:)
+            vect_next = Msh%Coord(Msh%Sommets(nCell,2),:) - Msh%Center(nCell,:)
+            IF(det(vect,vect_next) < 0._prec) THEN
+                Convex_hull(1:2) = Msh%Sommets(nCell,1:2)
+            ELSE
+                Convex_hull(1:2) = Msh%Sommets(nCell,2:1:-1)
             END IF
-            ! print *,loc_j
-            Msh%Sommets(nCell,1:loc_j) = temp_Sommets(1:loc_j)
-            Msh%Sommets(nCell,loc_j+1) = iVer
-            Msh%Sommets(nCell,loc_j+2:Msh%NbSom(nCell)+1) = temp_Sommets(loc_j+1:Msh%NbSom(nCell))
-            Msh%NbSom(nCell) = Msh%NbSom(nCell) + 1
+        END IF
 
-        END SUBROUTINE Insert_Vertex_onCell
+        IF(Msh%NbSom(nCell) > 2) THEN
+            Convex_hull = 0
+            ALLOCATE(Coord_Cell(Msh%NbSom(nCell),2))
+            Coord_Cell = Msh%Coord(Msh%Sommets(nCell,1:Msh%NbSom(nCell)),:)
+            
 
-        SUBROUTINE Gift_Wrapping(nCell,Msh)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: nCell
-            TYPE(MESH), INTENT(INOUT) :: Msh
-            REAL(prec),DIMENSION(:,:), ALLOCATABLE :: Coord_Cell
-            REAL(prec),DIMENSION(2) :: Coord_i,Coord_j, Coord_start, vect, vect_next,vect_prev
-            INTEGER, DIMENSION(Msh%NbSom(nCell)) :: Convex_hull
-            INTEGER :: Ver_i,Ver_j, Start_Point,Next_Point
-            INTEGER :: i,j
+            ! print *,Coord_Cell(:,1)
 
-            ! print *,"-----------------"
-            ! print *, "Gift wrapping ",nCell,'nbsom :', Msh%NbSom(nCell)
-            ! print *, Msh%Sommets(nCell,:)
+            ! Find point leftmost of nCell
+            Coord_start(1) = Minval(Coord_Cell(:,1))
+            Start_Point = FINDLOC(Coord_Cell(:,1),Coord_start(1),DIM=1)
+            Start_Point = Msh%Sommets(nCell,Start_Point)
 
-            IF(Msh%NbSom(nCell) == 0) THEN
-                print *, "Error: Cell", nCell, "has no vertices."
-                STOP
-            END IF
+            Ver_i=Start_Point;
+            Convex_hull(1) = Start_Point
+            Coord_Start = Msh%Coord(Start_Point,:) 
 
-            IF(Msh%NbSom(nCell) == 1) THEN
-                RETURN
-            END IF
+            vect_prev =0._prec
 
-            IF(Msh%NbSom(nCell) == 2) THEN  
-                vect      = Msh%Center(nCell,:) - Msh%Coord(Msh%Sommets(nCell,1),:)
-                vect_next = Msh%Coord(Msh%Sommets(nCell,2),:) - Msh%Center(nCell,:)
-                IF(det(vect,vect_next) < 0._prec) THEN
-                    Convex_hull(1:2) = Msh%Sommets(nCell,1:2)
-                ELSE
-                    Convex_hull(1:2) = Msh%Sommets(nCell,2:1:-1)
-                END IF
-            END IF
+            next_Point = mod(FINDLOC(Msh%Sommets(nCell,:),Ver_i,DIM=1),Msh%NbSom(nCell))+1
+            next_Point = Msh%Sommets(nCell,next_Point)
 
-            IF(Msh%NbSom(nCell) > 2) THEN
-                Convex_hull = 0
-                ALLOCATE(Coord_Cell(Msh%NbSom(nCell),2))
-                Coord_Cell = Msh%Coord(Msh%Sommets(nCell,1:Msh%NbSom(nCell)),:)
-                
-
-                ! print *,Coord_Cell(:,1)
-
-                ! Find point leftmost of nCell
-                Coord_start(1) = Minval(Coord_Cell(:,1))
-                Start_Point = FINDLOC(Coord_Cell(:,1),Coord_start(1),DIM=1)
-                Start_Point = Msh%Sommets(nCell,Start_Point)
-
-                Ver_i=Start_Point;
-                Convex_hull(1) = Start_Point
-                Coord_Start = Msh%Coord(Start_Point,:) 
-
-                vect_prev =0._prec
-
+            ! print *,"Start :",Start_Point
+            i = 2; NbPoints = 1
+            DO WHILE(Next_Point .NE. Start_Point)
+                ! print *,'-----'
+                Coord_i = Msh%Coord(Ver_i,:)
                 next_Point = mod(FINDLOC(Msh%Sommets(nCell,:),Ver_i,DIM=1),Msh%NbSom(nCell))+1
                 next_Point = Msh%Sommets(nCell,next_Point)
 
-                ! print *,"Start :",Start_Point
-                i = 2
-                DO WHILE(Next_Point .NE. Start_Point)
-                    ! print *,'-----'
-                    Coord_i = Msh%Coord(Ver_i,:)
-                    next_Point = mod(FINDLOC(Msh%Sommets(nCell,:),Ver_i,DIM=1),Msh%NbSom(nCell))+1
-                    next_Point = Msh%Sommets(nCell,next_Point)
+                Coord_j = Msh%Coord(next_Point,:)
+                vect_Next = Coord_j- Coord_i
 
-                    Coord_j = Msh%Coord(next_Point,:)
-                    vect_Next = Coord_j- Coord_i
+                DO j=1,Msh%NbSom(nCell)
 
-                    DO j=1,Msh%NbSom(nCell)
-
-                        Ver_j   = Msh%Sommets(nCell,j) 
-                        Coord_j = Msh%Coord(Ver_j,:)
-                        vect = Coord_j- Coord_i
-                        ! print *,Ver_i,Ver_j,next_Point,det(vect,vect_next)
-                        ! IF it is to the left of the previous guess and it does not go in the other direction as the previous vector, THEN
-                        IF((det(vect,vect_next)<eps0 .AND. Ver_j .NE. Ver_i) .AND. &                   
-                        &.NOT.(abs(det(vect,vect_prev))<eps0 .AND. (vect(1)/(vect_prev(1)+eps0) .LT. eps0 .AND.vect(2)/(vect_prev(2)+eps0) .LT. eps0 ))) THEN
-                            ! print *,"new Next :",Ver_j
-                            Next_Point = Ver_j
-                            vect_next = vect
-                        END IF
-                    END DO
-
-                    vect_prev = vect_Next
-                    Ver_i = Next_Point
-                    IF(Next_Point == Start_Point) Exit
-                    Convex_hull(i)= Ver_i
-                    ! print *,Convex_hull
-                    i = i+1
+                    Ver_j   = Msh%Sommets(nCell,j) 
+                    Coord_j = Msh%Coord(Ver_j,:)
+                    vect = Coord_j- Coord_i
+                    ! print *,Ver_i,Ver_j,next_Point,det(vect,vect_next)
+                    ! IF it is to the left of the previous guess and it does not go in the other direction as the previous vector, THEN
+                    IF((det(vect,vect_next)<eps0 .AND. Ver_j .NE. Ver_i) .AND. &                   
+                    &.NOT.(abs(det(vect,vect_prev))<eps0 .AND. (vect(1)/(vect_prev(1)+eps0) .LT. eps0 .AND.vect(2)/(vect_prev(2)+eps0) .LT. eps0 ))) THEN
+                        ! print *,"new Next :",Ver_j
+                        Next_Point = Ver_j
+                        vect_next = vect
+                    END IF
                 END DO
-                
-                ! print *,nCell,": ",Convex_hull
-                Msh%Sommets(nCell,1:Msh%NbSom(nCell)) = Convex_hull
-            END IF
 
-        END SUBROUTINE Gift_Wrapping
+                vect_prev = vect_Next
+                Ver_i = Next_Point
+                IF(Next_Point == Start_Point) Exit
+                Convex_hull(i)= Ver_i
+                ! print *,Convex_hull
+                i = i+1; NbPoints = NbPoints + 1
+            END DO
+            
+            ! print *,nCell,": ",Convex_hull
+            Msh%Sommets(nCell,1:NbPoints) = Convex_hull(1:NbPoints)
+            Msh%NbSom(nCell) = NbPoints
+        END IF
 
-    END SUBROUTINE
-
-    SUBROUTINE Switch_index_ver(Msh,Ver_1,Ver_2)
-        IMPLICIT NONE
-        TYPE(Mesh) :: Msh
-        INTEGER :: Ver_1,Ver_2
-
-    END SUBROUTINE Switch_index_ver
-
-
-    SUBROUTINE OUTMESH(Msh)
-        IMPLICIT NONE
-
-        TYPE(MESH) :: Msh
-        INTEGER ::iVer,iEdg,iCell
-
-        print *,"Vertex"
-        DO iVer=1,Msh%Nb_Ver
-            print *,'-----------------------------------------'
-            print *,iVer,'on Bdr:',Msh%VIsOnBdr(iVer),'Neighbors :',Msh%VNeigh(iVer,:)
-            print *,"between cells :",Msh%Ver2Cell(iVer,:)
-            write(*,'("at coord", 2f8.4 )')Msh%Coord(iVer,:)
-        END DO
-
-        print *,"========================================================="
-        print *,"========================================================="
-        print *,"Cells"
-        DO iCell=1,Msh%Nb_Cell
-            print *,'--------------'
-            print *,iCell,'on Bdr:',Msh%CIsOnBdr(iCell),'Neighbors :',Msh%CNeigh(iCell,:)
-            print *,"made of :",Msh%Sommets(iCell,:)
-            write(*,'("at coord", 2f8.4 )')Msh%Center(iCell,:)
-        END DO
-
-    END SUBROUTINE
+    END SUBROUTINE Gift_Wrapping
 
     SUBROUTINE Correct_Mesh(Msh)
         IMPLICIT NONE
@@ -1070,7 +841,7 @@ MODULE mod_mesh
         ! END DO
 
         DO iCell=1,Msh%Nb_Cell
-            IF(.NOT. IsConvex(iCell))        CALL Gift_Wrapping(iCell)
+            IF(.NOT. IsConvex(iCell,Msh))        CALL Gift_Wrapping(iCell,Msh)
         END DO
 
         Contains
@@ -1124,59 +895,6 @@ MODULE mod_mesh
 
             ! Msh%Nb_Ver = Msh%Nb_Ver -1
         END SUBROUTINE Replace_Vertex
-
-        FUNCTION IsConvex(nCell)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: nCell
-            REAL(prec),DIMENSION(2) :: Coord_i,Coord_ip, Coord_j,Coord_jp, Coord_k
-            REAL(prec),DIMENSION(2) :: i_To_j, j_To_k
-            LOGICAL :: IsConvex
-            INTEGER :: iVer,ipVer,jVer,jpVer,kVer
-            INTEGER :: i,j
-
-            IsConvex = .TRUE.
-
-            DO i=1,Msh%NbSom(nCell)
-
-            iVer = Msh%Sommets(nCell,mod(i  ,Msh%NbSom(nCell))+1)
-            ipVer= Msh%Sommets(nCell,mod(i+1,Msh%NbSom(nCell))+1)
-            Coord_i = Msh%Coord(iVer,:)
-            Coord_ip= Msh%Coord(ipVer,:)
-
-            DO j=i,Msh%NbSom(nCell)
-
-            jVer = Msh%Sommets(nCell,mod(j  ,Msh%NbSom(nCell))+1)
-            jpVer= Msh%Sommets(nCell,mod(j+1,Msh%NbSom(nCell))+1)
-            Coord_j = Msh%Coord(jVer,:)
-            Coord_jp= Msh%Coord(jpVer,:)
-
-            IF(CheckIntersect(Coord_i,Coord_ip, Coord_j,Coord_jp)) THEN
-                IsConvex = .FALSE.
-                RETURN
-            END IF
-
-            END DO
-            END DO
-
-            DO i=1,Msh%NbSom(nCell)
-
-                iVer = Msh%Sommets(nCell,mod(i  ,Msh%NbSom(nCell))+1)
-                jVer = Msh%Sommets(nCell,mod(i+1,Msh%NbSom(nCell))+1)
-                kVer = Msh%Sommets(nCell,mod(i+2,Msh%NbSom(nCell))+1)
-                Coord_i = Msh%Coord(iVer,:)
-                Coord_j = Msh%Coord(jVer,:)
-                Coord_k = Msh%Coord(kVer,:)
-                i_To_j = Coord_j-Coord_i
-                j_To_k = Coord_k-Coord_j
-
-                IF(det(i_To_j,j_To_k) < -eps0) THEN
-                    IsConvex = .FALSE.
-                    RETURN
-                END IF
-
-            END DO
-
-        END FUNCTION IsConvex
 
         SUBROUTINE Convex_Check(nCell)
             ! Regarde si la liste de Sommet le passage d'un vertex à un autre 
@@ -1346,161 +1064,7 @@ MODULE mod_mesh
 
         END SUBROUTINE Convex_Check
 
-        SUBROUTINE Gift_Wrapping(nCell)
-            IMPLICIT NONE
-            INTEGER, INTENT(IN) :: nCell
-            REAL(prec),DIMENSION(:,:), ALLOCATABLE :: Coord_Cell
-            REAL(prec),DIMENSION(2) :: Coord_i,Coord_j, Coord_start, vect, vect_next,vect_prev
-            REAL(prec) :: Min_angle
-            INTEGER, DIMENSION(Msh%NbSom(nCell)) :: Convex_hull
-            INTEGER :: Ver_i,Ver_j, Start_Point,Next_Point
-            INTEGER :: i,j
-
-            ! print *, "Gift wrapping ",nCell
-            ! print *, Msh%Sommets(nCell,:)
-
-            Convex_hull = 0
-            ALLOCATE(Coord_Cell(Msh%NbSom(nCell),2))
-            Coord_Cell = Msh%Coord(Msh%Sommets(nCell,1:Msh%NbSom(nCell)),:)
-            
-
-            ! print *,Coord_Cell(:,1)
-
-            ! Find point leftmost of nCell
-            Coord_start(1) = Minval(Coord_Cell(:,1))
-            Start_Point = FINDLOC(Coord_Cell(:,1),Coord_start(1),DIM=1)
-            Start_Point = Msh%Sommets(nCell,Start_Point)
-
-            Ver_i=Start_Point;
-            Convex_hull(1) = Start_Point
-            Coord_Start = Msh%Coord(Start_Point,:) 
-
-            vect_prev =0._prec
-
-            next_Point = mod(FINDLOC(Msh%Sommets(nCell,:),Ver_i,DIM=1),Msh%NbSom(nCell))+1
-            next_Point = Msh%Sommets(nCell,next_Point)
-
-            ! print *,"Start :",Start_Point
-            i = 2
-            DO WHILE(Next_Point .NE. Start_Point)
-                ! print *,'-----'
-                Coord_i = Msh%Coord(Ver_i,:)
-                next_Point = mod(FINDLOC(Msh%Sommets(nCell,:),Ver_i,DIM=1),Msh%NbSom(nCell))+1
-                next_Point = Msh%Sommets(nCell,next_Point)
-
-                Coord_j = Msh%Coord(next_Point,:)
-                vect_Next = Coord_j- Coord_i
-
-                DO j=1,Msh%NbSom(nCell)
-
-                    Ver_j   = Msh%Sommets(nCell,j) 
-                    Coord_j = Msh%Coord(Ver_j,:)
-                    vect = Coord_j- Coord_i
-                    ! print *,Ver_i,Ver_j,next_Point,det(vect,vect_next)
-                    ! IF it is to the left of the previous guess and it does not go in the other direction as the previous vector, THEN
-                    IF((det(vect,vect_next)<eps0 .AND. Ver_j .NE. Ver_i) .AND. &                   
-                     &.NOT.(abs(det(vect,vect_prev))<eps0 .AND. (vect(1)/(vect_prev(1)+eps0) .LT. eps0 .AND.vect(2)/(vect_prev(2)+eps0) .LT. eps0 ))) THEN
-                        ! print *,"new Next :",Ver_j
-                        Next_Point = Ver_j
-                        vect_next = vect
-                    END IF
-                END DO
-
-                vect_prev = vect_Next
-                Ver_i = Next_Point
-                IF(Next_Point == Start_Point) Exit
-                Convex_hull(i)= Ver_i
-                ! print *,Convex_hull
-                i = i+1
-            END DO
-            
-            ! print *,nCell,": ",Convex_hull
-            Msh%Sommets(nCell,1:Msh%NbSom(nCell)) = Convex_hull
-
-        END SUBROUTINE Gift_Wrapping
-
     END SUBROUTINE Correct_Mesh
-
-
-    SUBROUTINE Permute_Vertex_onCell(iVer,jVer,nCell, Msh)
-        IMPLICIT NONE
-        INTEGER,INTENT(IN) :: iVer,jVer,nCell
-        TYPE(MESH), INTENT(INOUT) :: Msh
-        INTEGER :: loc_i,loc_j
-
-        print *,"permute ",iVer,jVer,'in cell',nCell
-
-        loc_i = FINDLOC(Msh%Sommets(nCell,:),iVer,DIM=1)
-        loc_j = FINDLOC(Msh%Sommets(nCell,:),jVer,DIM=1)
-        Msh%Sommets(nCell,loc_i) = jVer
-        MSh%Sommets(nCell,loc_j) = iVer
-        ! print *,Msh%Sommets(nCell,:)
-
-    END SUBROUTINE
-
-
-    SUBROUTINE IsDelauney(Msh)
-        IMPLICIT NONE
-        TYPE(MESH) :: Msh
-        LOGICAL :: IsDelaun
-        INTEGER :: nCell, iCell, iVer,ipVer, jVer,jpVer, tVer
-        INTEGER :: i,j
-
-        IsDelaun = .TRUE.
-
-        DO nCell=1,Msh%Nb_Cell
-            DO i=1,3
-            iCell = Msh%CNeigh(nCell,i)
-            iVer  = Msh%Sommets(nCell,mod(i  ,3)+1)
-            ipVer = Msh%Sommets(nCell,mod(i+1,3)+1)
-            IF(iCell .NE. 0) THEN
-                DO j =1,3
-                    jVer  = Msh%Sommets(iCell,mod(j  ,3)+1)
-                    jpVer = Msh%Sommets(iCell,mod(j+1,3)+1)
-                    IF((jVer == iVer .AND. jpVer == ipVer) .OR.  (jVer == ipVer .AND. jpVer == iVer) ) THEN
-
-                        tVer = Msh%Sommets(iCell,mod(j+2,3)+1)
-                        IsDelaun = .NOT. IsInCircum(nCell,tVer)
-                        IF(.NOT. IsDelaun) THEN 
-                            Print *,"This Mesh is Delauney : ",IsDelaun
-                            write(*,fmt='(" Vertex ",i3," Is inside the circum circle of ",i3)') tVer,nCell
-                        RETURN
-                        END IF
-                    END IF
-
-                END DO
-            END IF
-            END DO
-        END DO
-
-        Print *,"This Mesh is Delauney : ",IsDelaun
-
-        Contains 
-
-
-        FUNCTION IsInCircum(nCell,tVer)
-            IMPLICIT NONE
-            INTEGER :: nCell, tVer
-            REAL(prec), DIMENSION(2) :: c1,c2,c3, P
-            REAL(prec), DIMENSION(3) :: v1,v2,v3
-            LOGICAL :: IsInCircum
-
-            c1 = Msh%Coord(Msh%Sommets(nCell,1),:)
-            c2 = Msh%Coord(Msh%Sommets(nCell,2),:)
-            c3 = Msh%Coord(Msh%Sommets(nCell,3),:)
-            P  = Msh%Coord(tVer,:)
-
-            v1(1:2) = c1-P; v1(3) = (norm2(c1-P))**2
-            v2(1:2) = c2-P; v2(3) = (norm2(c2-P))**2
-            v3(1:2) = c3-P; v3(3) = (norm2(c3-P))**2
-
-            IF(det(v1,v2,v3) >=0) THEN; IsInCircum = .TRUE.
-            ELSE ; IsInCircum = .FALSE.
-            END IF
-
-        END FUNCTION IsInCircum
-
-    END SUBROUTINE IsDelauney
 
 
     
