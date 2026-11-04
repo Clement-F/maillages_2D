@@ -670,31 +670,18 @@ MODULE mod_mesh
         IF(ALLOCATED(Msh%Center)) DEALLOCATE(Msh%Center)
         ALLOCATE(Msh%Center(Msh%Nb_Cell,2))
 
-        ! Barycenter
-        DO iTri = 1, Msh%Nb_Cell
-            Msh%Center(iTri,1) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),1)) / 3.0_prec
-            Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
-        END DO
-
         ! Circumscribed circle Msh%Center
-        ! DO iTri = 1, Msh%Nb_Cell
-        !     A = Msh%Coord(Msh%Sommets(iTri,1),:)
-        !     B = Msh%Coord(Msh%Sommets(iTri,2),:)
-        !     C = Msh%Coord(Msh%Sommets(iTri,3),:)
-        !     Msh%Center(iTri,:) = Circumcenter(A, B, C)
+        DO iTri = 1, Msh%Nb_Cell
+            A = Msh%Coord(Msh%Sommets(iTri,1),:)
+            B = Msh%Coord(Msh%Sommets(iTri,2),:)
+            C = Msh%Coord(Msh%Sommets(iTri,3),:)
+            Msh%Center(iTri,:) = Circumcenter(A, B, C)
 
-        !     IF(Msh%CIsOnBdr(iTri)) THEN ! .AND. IF center is not in triangle
-        !         Msh%Center(iTri,1) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),1)) / 3.0_prec
-        !         Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
-        !     END IF
-        ! END DO
-
-        ! Msh%Center(:,1) = max(Msh%Center(:,1), minval(Msh%Coord(:,1)))
-        ! Msh%Center(:,2) = max(Msh%Center(:,2), minval(Msh%Coord(:,2)))
-        ! Msh%Center(:,1) = min(Msh%Center(:,1), maxval(Msh%Coord(:,1)))
-        ! Msh%Center(:,2) = min(Msh%Center(:,2), maxval(Msh%Coord(:,2)))
-
-
+            IF(.NOT. Is_inside_triangle(A, B, C, Msh%Center(iTri,:))) THEN
+                Msh%Center(iTri,1) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),1)) / 3.0_prec
+                Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
+            END IF
+        END DO
 
     END SUBROUTINE Calc_center
 

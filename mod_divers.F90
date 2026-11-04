@@ -27,24 +27,24 @@ CONTAINS
     END SUBROUTINE jump
 
     SUBROUTINE unique_sort(sizef,size,final,val)
-    implicit none
-    integer :: i = 0, min_val, max_val, size, sizef
-    integer, dimension(size) :: val, unique
-    integer, dimension(:), allocatable :: final
+        implicit none
+        integer :: i = 0, min_val, max_val, size, sizef
+        integer, dimension(size) :: val, unique
+        integer, dimension(:), allocatable :: final
 
-    print *,val
-    min_val = minval(val,val>0)-1
-    max_val = maxval(val)
-    do while (min_val<max_val)
-        i = i+1
-        min_val = minval(val, mask=val>min_val)
-        unique(i) = min_val
-    enddo
-    IF(ALLOCATED(final)) DEALLOCATE(final)
-    allocate(final(i), source=unique(1:i))   !<-- Or, just use unique(1:i) 
-    print *, final
-    print *,i
-    sizef = i
+        print *,val
+        min_val = minval(val,val>0)-1
+        max_val = maxval(val)
+        do while (min_val<max_val)
+            i = i+1
+            min_val = minval(val, mask=val>min_val)
+            unique(i) = min_val
+        enddo
+        IF(ALLOCATED(final)) DEALLOCATE(final)
+        allocate(final(i), source=unique(1:i))   !<-- Or, just use unique(1:i) 
+        print *, final
+        print *,i
+        sizef = i
 
     END SUBROUTINE unique_sort
 
@@ -101,5 +101,34 @@ CONTAINS
         IF(( eps0 < t .AND. t < 1) .AND. (eps0 < u .AND. u < 1) ) CheckIntersect = .TRUE.
 
     END Function CheckIntersect
+
+    FUNCTION Surface(A,B,C)
+        IMPLICIT NONE
+        REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C
+        REAL(prec) :: Surface
+
+        Surface = 0.5_prec*abs(det(B-A,C-A))
+    END FUNCTION Surface
+
+    FUNCTION Coordonnee_barycentrique(A,B,C,P)
+        IMPLICIT NONE
+        REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C,P
+        REAL(prec), DIMENSION(3) :: Coordonnee_barycentrique
+
+        Coordonnee_barycentrique(1) = Surface(B,C,P)/Surface(A,B,C)
+        Coordonnee_barycentrique(2) = Surface(C,A,P)/Surface(A,B,C)
+        Coordonnee_barycentrique(3) = Surface(A,B,P)/Surface(A,B,C)
+
+    END FUNCTION Coordonnee_barycentrique
+
+    FUNCTION Is_inside_triangle(A,B,C,P)
+        IMPLICIT NONE
+        REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C,P
+        LOGICAL :: Is_inside_triangle
+
+        Is_inside_triangle = .FALSE.
+        IF(ALL(Coordonnee_barycentrique(A,B,C,P) >= 0.0_prec)) Is_inside_triangle = .TRUE.
+
+    END FUNCTION Is_inside_triangle
 
 END MODULE mod_divers
