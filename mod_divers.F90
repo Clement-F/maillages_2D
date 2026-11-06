@@ -21,34 +21,34 @@ CONTAINS
 
         DO ij=1,kn
         READ(id,*) ab
-        print *,ab
+        ! print *,ab
         END DO
 
     END SUBROUTINE jump
 
-    SUBROUTINE unique_sort(sizef,size,final,val)
-        implicit none
-        integer :: i = 0, min_val, max_val, size, sizef
-        integer, dimension(size) :: val, unique
-        integer, dimension(:), allocatable :: final
+    ! SUBROUTINE unique_sort(sizef,size,final,val)
+    !     implicit none
+    !     integer :: i = 0, min_val, max_val, size, sizef
+    !     integer, dimension(size) :: val, unique
+    !     integer, dimension(:), allocatable :: final
 
-        print *,val
-        min_val = minval(val,val>0)-1
-        max_val = maxval(val)
-        do while (min_val<max_val)
-            i = i+1
-            min_val = minval(val, mask=val>min_val)
-            unique(i) = min_val
-        enddo
-        IF(ALLOCATED(final)) DEALLOCATE(final)
-        allocate(final(i), source=unique(1:i))   !<-- Or, just use unique(1:i) 
-        print *, final
-        print *,i
-        sizef = i
+    !     print *,val
+    !     min_val = minval(val,val>0)-1
+    !     max_val = maxval(val)
+    !     do while (min_val<max_val)
+    !         i = i+1
+    !         min_val = minval(val, mask=val>min_val)
+    !         unique(i) = min_val
+    !     enddo
+    !     IF(ALLOCATED(final)) DEALLOCATE(final)
+    !     allocate(final(i), source=unique(1:i))   !<-- Or, just use unique(1:i) 
+    !     print *, final
+    !     print *,i
+    !     sizef = i
 
-    END SUBROUTINE unique_sort
+    ! END SUBROUTINE unique_sort
 
-    FUNCTION det(v1,v2,v3)
+    FUNCTION det(v1,v2,v3) ! Deteminant de 2/3 vecteurs de taille 2/3
         IMPLICIT NONE
 
         REAL(prec),DIMENSION(:), INTENT(IN) ::v1,v2
@@ -60,7 +60,7 @@ CONTAINS
             & det = v1(1)*v2(2)*v3(3) + v1(2)*v2(3)*v3(1) + v1(3)*v2(1)*v3(2) - v1(3)*v2(2)*v3(1) - v2(3)*v3(2)*v1(1) - v3(3)*v1(2)*v2(1)
     END FUNCTION det
 
-    FUNCTION normalized(vect)
+    FUNCTION normalized(vect) ! normalise un vecteur de taille 2
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: vect
         REAL(prec), DIMENSION(2) :: normalized
@@ -68,14 +68,14 @@ CONTAINS
         normalized = vect/norm2(vect)
     END FUNCTION
 
-    FUNCTION norm2(vect)
+    FUNCTION norm2(vect)    ! donne la norme d'un vecteur de taille 2
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: vect
         REAL(prec) :: norm2
         norm2 = sqrt(vect(1)**2+vect(2)**2)
     END FUNCTION
 
-    Function CheckIntersect(P1,P2, Q1,Q2)
+    Function CheckIntersect(P1,P2, Q1,Q2)       ! Check if the segment (P1,P2) intersects with the segment (Q1,Q2)
         IMPLICIT NONE
         REAL(prec), DIMENSION(2) :: P1,P2, Q1,Q2 !(Ax,Bx,Ay,By)
         REAL(prec) :: t,u
@@ -85,10 +85,11 @@ CONTAINS
         CheckIntersect = .FALSE.
 
         a = P2(1) - P1(1); b = Q1(1) - Q2(1)
-        c = P2(2) - P1(1); d = Q1(2) - Q2(2)
-
+        c = P2(2) - P1(2); d = Q1(2) - Q2(2)
         k1= Q1(1) - P1(1); k2= Q1(2) - P1(2)
+
         det = a*d -b*c
+
         IF(abs(det) .LT. eps0) THEN 
             CheckIntersect = .FALSE.
             RETURN
@@ -96,13 +97,12 @@ CONTAINS
 
         t = (k1*d - k2*b)/det;       
         u = (k2*a - k1*c)/det
-        ! print *,t,u
-        ! print *,( eps0 < t .AND. t < 1), (eps0 < u .AND. u < 1)
+
         IF(( eps0 < t .AND. t < 1) .AND. (eps0 < u .AND. u < 1) ) CheckIntersect = .TRUE.
 
     END Function CheckIntersect
 
-    FUNCTION Signed_Surface(A,B,C)
+    FUNCTION Signed_Surface(A,B,C)              ! Calcul la surface signée du triangle ABC
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C
         REAL(prec) :: Signed_Surface
@@ -110,7 +110,7 @@ CONTAINS
         Signed_Surface = 0.5_prec*(det(B-A,C-A))
     END FUNCTION Signed_Surface
 
-    FUNCTION Coordonnee_barycentrique(A,B,C,P)
+    FUNCTION Coordonnee_barycentrique(A,B,C,P)  ! Calcul les coordonnées barycentriques du point P dans le triangle ABC
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C,P
         REAL(prec), DIMENSION(3) :: Coordonnee_barycentrique
@@ -121,7 +121,7 @@ CONTAINS
 
     END FUNCTION Coordonnee_barycentrique
 
-    FUNCTION Is_inside_triangle(A,B,C,P)
+    FUNCTION Is_inside_triangle(A,B,C,P)        ! Check if the point P is inside the triangle ABC
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C,P
         LOGICAL :: Is_inside_triangle
@@ -132,8 +132,7 @@ CONTAINS
 
     END FUNCTION Is_inside_triangle
 
-
-    SUBROUTINE Calc_center(Msh)
+    SUBROUTINE Calc_center(Msh)                 ! Calcul les centres des mailles du maillage (circumcenter ou barycentre)
         IMPLICIT NONE
         TYPE(MESH), INTENT(INOUT) :: Msh
         INTEGER :: iTri
@@ -161,7 +160,7 @@ CONTAINS
 
     END SUBROUTINE Calc_center
 
-    FUNCTION Circumcenter(A, B, C)
+    FUNCTION Circumcenter(A, B, C)              ! Calcul le circumcenter du triangle ABC
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A, B, C
         REAL(prec), DIMENSION(2) :: circumcenter
@@ -174,7 +173,7 @@ CONTAINS
 
     END FUNCTION Circumcenter
 
-    SUBROUTINE Permute_Vertex_onCell(iVer,jVer,nCell, Msh)
+    SUBROUTINE Permute_Vertex_onCell(iVer,jVer,nCell, Msh)  ! Permute vertex i and j in Sommets(nCell,:)
         IMPLICIT NONE
         INTEGER,INTENT(IN) :: iVer,jVer,nCell
         TYPE(MESH), INTENT(INOUT) :: Msh
@@ -190,7 +189,7 @@ CONTAINS
 
     END SUBROUTINE
 
-    SUBROUTINE Insert_Vertex_onCell(iVer,jVer,nCell,Msh,bef_aft)   ! Insert vertex i behind Vertex j in Sommets(nCell,:)
+    SUBROUTINE Insert_Vertex_onCell(iVer,jVer,nCell,Msh,bef_aft)   ! Insert vertex i behind/after Vertex j in Sommets(nCell,:)
         IMPLICIT NONE
         INTEGER,INTENT(IN) :: iVer,jVer,nCell
         TYPE(MESH), INTENT(INOUT) :: Msh
@@ -216,7 +215,7 @@ CONTAINS
 
     END SUBROUTINE Insert_Vertex_onCell
 
-    SUBROUTINE IsDelauney(Msh)
+    SUBROUTINE IsDelauney(Msh)                  ! Check if the mesh is Delauney, if not print the first vertex inside the circumcircle of a triangle
         IMPLICIT NONE
         TYPE(MESH) :: Msh
         LOGICAL :: IsDelaun
@@ -256,7 +255,7 @@ CONTAINS
 
     END SUBROUTINE IsDelauney
 
-    FUNCTION IsInCircum(nCell,tVer,Msh)
+    FUNCTION IsInCircum(nCell,tVer,Msh)         ! Check if the vertex tVer is inside the circumcircle of the triangle nCell
         IMPLICIT NONE
         INTEGER :: nCell, tVer
         TYPE(Mesh) :: Msh
@@ -279,7 +278,7 @@ CONTAINS
 
     END FUNCTION IsInCircum
 
-    FUNCTION hash_find(iVer1, iVer2, Msh) RESULT(j_hsh)
+    FUNCTION hash_find(iVer1, iVer2, Msh) RESULT(j_hsh)     ! Give the index of the edge (iVer1,iVer2) in the hash table, or 0 if not found
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: iVer1, iVer2
         TYPE(MESH), INTENT(IN) :: Msh
@@ -302,7 +301,7 @@ CONTAINS
 
     END FUNCTION hash_find
 
-    SUBROUTINE hash_add(iVer1, iVer2, iTri, Msh, i_hsh)
+    SUBROUTINE hash_add(iVer1, iVer2, iTri, Msh, i_hsh)     ! Add the edge (iVer1,iVer2) with triangle iTri to the hash table, or update the second triangle assigned to the edge if it already exists
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: iVer1, iVer2, iTri, i_hsh
         TYPE(MESH), INTENT(INOUT) :: Msh
@@ -341,8 +340,7 @@ CONTAINS
 
     END SUBROUTINE hash_add
 
-
-    FUNCTION IsConvex(nCell, Msh)
+    FUNCTION IsConvex(nCell, Msh)               ! Check if the cell nCell is convex
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: nCell
         TYPE(MESH), INTENT(IN) :: Msh

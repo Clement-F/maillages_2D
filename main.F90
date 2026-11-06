@@ -5,10 +5,10 @@ PROGRAM main
     TYPE(MESH) :: Msh,Msh_dual
 
     Msh%DIM = 2
-    Msh%maxneigh=3
+    Msh%max_neigh_Cell=3
 
     print *, "Reading mesh file..."
-    CALL ReadMesh("Meshes/nacaAdap.mesh",Msh)
+    CALL ReadMesh("Meshes/carre_4h.mesh",Msh)
     print *, "Mesh file read successfully."
 
    
