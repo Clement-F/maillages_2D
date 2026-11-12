@@ -7,13 +7,15 @@ module mod_Var
   IMPLICIT NONE
 
   TYPE Cell
+  
     INTEGER :: index
     INTEGER :: cref                 ! Ref des mailles
     INTEGER :: NbSom               ! Nombre de voisins de chaque maille
     INTEGER, ALLOCATABLE, DIMENSION(:) :: Sommets, CNeigh   ! Sommets assignée aux mailles et voisins des mailles
                                                                 ! Sommets0 et Cneigh0 sont de dimension (nb_cell0, maxneigh) où la 2e coordonée est le stockage
     INTEGER, ALLOCATABLE, DIMENSION(:) :: Cell2Edg            ! Pointer to EdgeTable
-    REAL(prec), DIMENSION(2) :: Center          ! Coordonnées des centres des mailles du maillage , de dimension (nb_cell0, 2)
+    REAL(prec), DIMENSION(2) :: Centroid, Center          ! Coordonnées des centres des mailles du maillage , de dimension (nb_cell0, 2)
+    REAL(prec) :: Surface
     LOGICAL :: CIsOnBdr
 
   END TYPE Cell

@@ -137,6 +137,51 @@ CONTAINS
 
     END SUBROUTINE Calc_center
 
+    SUBROUTINE Calc_Surface(Msh)
+        TYPE(Mesh), INTENT(INOUT) :: Msh
+        TYPE(Cell) :: nCell
+        INTEGER :: n,i
+        REAL(prec) :: surf
+        REAL(prec), DIMENSION(2) :: A,B,C
+
+        DO n=1,Msh%Nb_Cell
+            nCell = Msh%Cells(n)
+            C = nCell%Center
+            surf =0._prec
+
+            DO i =1,nCell%NbSom
+                A = Msh%Coord(nCell%Sommets(mod(i   ,nCell%NbSom)+1),:)
+                B = Msh%Coord(nCell%Sommets(mod(i +1,nCell%NbSom)+1),:)
+                surf = surf + 0.5_prec*abs(det(B-A,C-A))
+            END DO
+            nCell%Surface = surf
+            Msh%Cells(n) = nCell
+        END DO
+
+    END SUBROUTINE Calc_Surface
+
+    SUBROUTINE Calc_Centroid(Msh)
+        TYPE(MESH), INTENT(INOUT) :: Msh 
+        TYPE(CELL) :: nCell
+        INTEGER :: n,i 
+        REAL(prec), DIMENSION(2) :: centroid, Ver1,Ver2, normal
+
+        DO n=1,Msh%Nb_Cell
+            nCell = Msh%Cells(n)
+
+            DO i =1,nCell%NbSom
+                Ver1 = Msh%Coord(nCell%Sommets(mod(i   ,nCell%NbSom)+1),:)
+                Ver2 = Msh%Coord(nCell%Sommets(mod(i +1,nCell%NbSom)+1),:)
+                normal(1) = Ver2(2) - Ver1(2); normal(2) = Ver1(1) - Ver2(1)
+
+                centroid = centroid + 0.5_prec*(DOT_Product(Ver1**2,normal) +  DOT_Product(Ver2**2,normal) + 4*DOT_Product( 0.5*(Ver1+Ver2),normal))
+            END DO
+            nCell%centroid = centroid/nCell%Surface
+            Msh%Cells(n) = nCell
+        END DO
+
+    END SUBROUTINE Calc_Centroid
+
     FUNCTION Circumcenter(A, B, C)              ! Calcul le circumcenter du triangle ABC
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A, B, C
@@ -377,31 +422,23 @@ CONTAINS
         TYPE(MESH), INTENT(INOUT) :: Msh
         TYPE(CELL), INTENT(INOUT) :: iCell,jCell
         INTEGER :: index_edg, Common_Edg, size_list
-        INTEGER :: Ver_1, Ver_2, Ver_temp, index_temp
+        INTEGER :: Ver_1, Ver_2, Ver_temp, index_temp, size_fused_cell
         INTEGER, DIMENSION(iCell%NbSom + jCell%NbSom -2) :: Sommets_temp
 
-        print *,'-------------------------'
-        ! Choix delete
-        print *, "FUSING CELLS ", iCell%index, " WITH ", jCell%index
         IF(iCell%index == jCell%index) STOP "FUSE CELLS ERROR : SAME CELLS"
-        ! jCell%index = max(iCell%index,jCell%index); To_Rec_ind= min(iCell%index,jCell%index)
-        ! jCell = Msh%Cells(jCell%index); iCell = Msh%Cells(To_Rec_ind)
+        
+        size_fused_cell = iCell%NbSom + jCell%NbSom -2
 
         ! CNeigh(jEdg) = Cell_Nghb ; Cell2Edg(jEdg) = j_hsh
         Common_Edg = iCell%Cell2Edg(FINDLOC(iCell%CNeigh(:), jCell%index, DIM=1))
 
         Ver_1 = Msh%LstObj(Common_Edg,1); Ver_2 = Msh%LstObj(Common_Edg,2)
 
-        write(*,fmt='("Fusing cells", i3," with ",i3)')
-        print *, Msh%LstObj(Common_Edg,:)
-
+        write(*,fmt='("Fusing cells", i3," with ",i3)'), iCell%index, jCell%index
         ! CRef (?)
 
         ! Sommets
         ! ALLOCATE ???
-        print *,"iCell", iCell%Sommets(:)
-        print *,"jCell", jCell%Sommets(:)
-        print *, Ver_1, Ver_2
 
         ! index_edg splits the Sommets list of iCell in two [1,..,index_edg] // [index_edg+1,...,NbSom]
         ! find the edge in the Receiving cell
@@ -410,31 +447,17 @@ CONTAINS
 
         IF(index_edg ==1 .AND. (iCell%Sommets(iCell%NbSom) == Ver_1 .OR. iCell%Sommets(iCell%NbSom) == Ver_2) ) index_edg = iCell%NbSom
 
-
-        print *,"separation edge :", index_edg
-
         Sommets_temp(1:index_edg) = iCell%Sommets(1:index_edg)
         size_list = index_edg
         index_temp = FINDLOC(jCell%Sommets(:), iCell%Sommets(index_edg), DIM=1)
-        ! IF(jCell%Sommets(mod(index_temp, jCell%NbSom)+1) == iCell%Sommets(mod(index_edg, jCell%NbSom)+1)) index_temp = index_temp +1
 
         ! Add the deleted cells after the edge
-        DO WHILE(( Ver_temp .NE. Ver_1 .AND. Ver_temp .NE. Ver_2) .AND. (size_list .LT.  iCell%NbSom + jCell%NbSom -2))
+        DO WHILE(( Ver_temp .NE. Ver_1 .AND. Ver_temp .NE. Ver_2) .AND. (size_list .LT.  size_fused_cell))
             index_temp = mod(index_temp, jCell%NbSom)+1
             Ver_temp = jCell%Sommets( index_temp)
-            print *,"ver temp", Ver_temp
-            ! print *, Ver_1,Ver_2, Ver_temp .NE. Ver_1 ,Ver_temp .NE. Ver_2
-            
-            ! IF( Ver_temp == Ver_1 .OR. Ver_temp == Ver_2) EXIT
-
             size_list = size_list + 1
             Sommets_temp(size_list) = Ver_temp
-
-            print *,"iter", Sommets_temp
-            print *,"added", Ver_temp, "at position", index_temp
         END DO
-
-        print *,"deleted cell received in full"
 
         ! Add the Receiving cell's missing vertex to the list
         IF(size_list .LT.  iCell%NbSom + jCell%NbSom -2) THEN 
@@ -444,7 +467,7 @@ CONTAINS
             Sommets_temp(size_list) = Ver_temp
         END IF
             
-        DO WHILE(( Ver_temp .NE. Ver_1 .AND. Ver_temp .NE. Ver_2) .AND. (size_list .LT.  iCell%NbSom + jCell%NbSom -2))
+        DO WHILE(( Ver_temp .NE. Ver_1 .AND. Ver_temp .NE. Ver_2) .AND. (size_list .LT.  size_fused_cell))
             index_temp = mod(index_temp, iCell%NbSom)+1
             Ver_temp = iCell%Sommets( index_temp)
             print *,"ver temp", Ver_temp
@@ -452,29 +475,26 @@ CONTAINS
             IF( Ver_temp == Ver_1 .OR. Ver_temp == Ver_2) EXIT
             size_list = size_list + 1
             Sommets_temp(size_list) = Ver_temp
-
-            print *,"iter", Sommets_temp
-            print *,"added", Ver_temp, "at position", index_temp
         END DO
 
-
-        ! Sommets_temp(size_list:) = iCell%Sommets(index_edg:)
 
         DEALLOCATE(iCell%Sommets)
         ALLOCATE(iCell%Sommets(size_list))
         
-        print *, size_list,',',sommets_temp
+        ! print *, size_list,',',sommets_temp
         iCell%Sommets(:) = Sommets_Temp(1:size_list)
 
 
         ! NbSom
-        iCell%NbSom = iCell%NbSom + jCell%NbSom -2
+        iCell%NbSom = size_list
         Msh%max_neigh_Cell = max(Msh%max_neigh_Cell, iCell%NbSom)
 
-        print *,'-------------------------'
+        ! 
+
 
         Msh%Cells(iCell%index) = iCell
         Msh%Cells(jCell%index) = Void_cell
+
 
 
     END SUBROUTINE
