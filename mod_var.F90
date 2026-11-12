@@ -6,6 +6,18 @@ module mod_Var
   !************************
   IMPLICIT NONE
 
+  TYPE Cell
+    INTEGER :: index
+    INTEGER :: cref                 ! Ref des mailles
+    INTEGER :: NbSom               ! Nombre de voisins de chaque maille
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: Sommets, CNeigh   ! Sommets assignée aux mailles et voisins des mailles
+                                                                ! Sommets0 et Cneigh0 sont de dimension (nb_cell0, maxneigh) où la 2e coordonée est le stockage
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: Cell2Edg            ! Pointer to EdgeTable
+    REAL(prec), DIMENSION(2) :: Center          ! Coordonnées des centres des mailles du maillage , de dimension (nb_cell0, 2)
+    LOGICAL :: CIsOnBdr
+
+  END TYPE Cell
+
   TYPE MESH
 
     ! Mesh
@@ -19,11 +31,7 @@ module mod_Var
     INTEGER :: max_neigh_Ver                                         ! nombre maximum de voisins d'un sommet
 
     ! Cell
-    INTEGER, ALLOCATABLE, DIMENSION(:) :: cref                 ! Ref des mailles
-    INTEGER, ALLOCATABLE, DIMENSION(:) :: NbSom               ! Nombre de voisins de chaque maille
-    INTEGER, ALLOCATABLE, DIMENSION(:,:) :: Sommets, CNeigh   ! Sommets assignée aux mailles et voisins des mailles
-                                                                ! Sommets0 et Cneigh0 sont de dimension (nb_cell0, maxneigh) où la 2e coordonée est le stockage
-    REAL(prec), ALLOCATABLE, DIMENSION(:,:) :: Center          ! Coordonnées des centres des mailles du maillage , de dimension (nb_cell0, 2)
+    TYPE(CELL), ALLOCATABLE, DIMENSION(:) :: Cells
 
     ! Vertex
     INTEGER, ALLOCATABLE, DIMENSION(:) :: Vref                ! Ref des sommets
@@ -43,20 +51,22 @@ module mod_Var
     INTEGER, ALLOCATABLE, DIMENSION(:) :: Bdr                     ! Indices de l'arête sur le bord du maillage
     INTEGER, ALLOCATABLE, DIMENSION(:) :: VBdr                    ! Lst of Bdr vertex's index ex : (5,14,20,36,...)
     LOGICAL, ALLOCATABLE, DIMENSION(:) :: VIsOnBdr
-    LOGICAL, ALLOCATABLE, DIMENSION(:) :: CIsOnBdr
     LOGICAL, ALLOCATABLE, DIMENSION(:) :: EIsOnbdr              
 
     ! HASH TABLE
     INTEGER :: SizHead                                          ! Maximum key value, the key is in [0,SizHead-1]
     INTEGER :: NbrObj                                           ! Number of objects in the hash table
     INTEGER, ALLOCATABLE, DIMENSION(:) ::  Head                 ! Head[key%(SizHead)] = link to the first object having this key in the LstObj list
-    INTEGER, ALLOCATABLE, DIMENSION(:,:) ::  LstObj             ! List of objects in the hash table (ver1,ver2,cell1,cell2) (cell2 !=0 if the edge is not on the border)
+    INTEGER, ALLOCATABLE, DIMENSION(:,:) ::  LstObj             ! List of edges in the hash table (ver1,ver2,cell1,cell2) (cell2 !=0 if the edge is not on the border)
 
 
   END TYPE MESH
 
   REAL(prec), parameter :: eps0=0.1_prec**(2*prec-3)
 
+
+  TYPE(Cell) :: Void_cell
+  
 
   END MODULE mod_Var
 

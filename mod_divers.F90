@@ -9,9 +9,6 @@ MODULE mod_divers
 
 CONTAINS
 
-    !-----------------------------------------!
-    ! SKIP kn LINES IN THE READING OF FILE id !
-    !-----------------------------------------!
     SUBROUTINE jump(kn,id)
         IMPLICIT NONE
 
@@ -25,28 +22,6 @@ CONTAINS
         END DO
 
     END SUBROUTINE jump
-
-    ! SUBROUTINE unique_sort(sizef,size,final,val)
-    !     implicit none
-    !     integer :: i = 0, min_val, max_val, size, sizef
-    !     integer, dimension(size) :: val, unique
-    !     integer, dimension(:), allocatable :: final
-
-    !     print *,val
-    !     min_val = minval(val,val>0)-1
-    !     max_val = maxval(val)
-    !     do while (min_val<max_val)
-    !         i = i+1
-    !         min_val = minval(val, mask=val>min_val)
-    !         unique(i) = min_val
-    !     enddo
-    !     IF(ALLOCATED(final)) DEALLOCATE(final)
-    !     allocate(final(i), source=unique(1:i))   !<-- Or, just use unique(1:i) 
-    !     print *, final
-    !     print *,i
-    !     sizef = i
-
-    ! END SUBROUTINE unique_sort
 
     FUNCTION det(v1,v2,v3) ! Deteminant de 2/3 vecteurs de taille 2/3
         IMPLICIT NONE
@@ -135,18 +110,18 @@ CONTAINS
     SUBROUTINE Calc_center(Msh)                 ! Calcul les centres des mailles du maillage (circumcenter ou barycentre)
         IMPLICIT NONE
         TYPE(MESH), INTENT(INOUT) :: Msh
-        INTEGER :: iTri
+        TYPE(Cell) :: iTri
+        INTEGER :: i
         REAL(prec), DIMENSION(2) :: A, B, C
         
-        IF(ALLOCATED(Msh%Center)) DEALLOCATE(Msh%Center)
-        ALLOCATE(Msh%Center(Msh%Nb_Cell,2))
-
         ! Circumscribed circle Msh%Center
-        DO iTri = 1, Msh%Nb_Cell
-            ! A = Msh%Coord(Msh%Sommets(iTri,1),:)
-            ! B = Msh%Coord(Msh%Sommets(iTri,2),:)
-            ! C = Msh%Coord(Msh%Sommets(iTri,3),:)
-            ! Msh%Center(iTri,:) = Circumcenter(A, B, C)
+        DO i = 1, Msh%Nb_Cell
+            iTri = Msh%Cells(i)
+
+            ! A = Msh%Coord(iTri%Sommets(1),:)
+            ! B = Msh%Coord(iTri%Sommets(2),:)
+            ! C = Msh%Coord(iTri%Sommets(3),:)
+            ! iTri%Center(:) = Circumcenter(A, B, C)
 
             ! IF(.NOT. Is_inside_triangle(A, B, C, Msh%Center(iTri,:)) .AND. Msh%CIsOnBdr(iTri) ) THEN
             !     print *, "Circumcenter is outside the triangle for cell ", iTri
@@ -154,8 +129,10 @@ CONTAINS
             !     Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
             ! END IF
 
-            Msh%Center(iTri,1) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),1)) / 3.0_prec
-            Msh%Center(iTri,2) = Sum(Msh%Coord(Msh%Sommets(iTri,1:3),2)) / 3.0_prec
+            iTri%Center(1) = Sum(Msh%Coord(iTri%Sommets(1:3),1)) / 3.0_prec
+            iTri%Center(2) = Sum(Msh%Coord(iTri%Sommets(1:3),2)) / 3.0_prec
+
+            Msh%Cells(iTri%index) = iTri
         END DO
 
     END SUBROUTINE Calc_center
@@ -173,73 +150,72 @@ CONTAINS
 
     END FUNCTION Circumcenter
 
-    SUBROUTINE Permute_Vertex_onCell(iVer,jVer,nCell, Msh)  ! Permute vertex i and j in Sommets(nCell,:)
+    SUBROUTINE Permute_Vertex_onCell(iVer,jVer, nCell)  ! Permute vertex i and j in Sommets(nCell,:)
         IMPLICIT NONE
-        INTEGER,INTENT(IN) :: iVer,jVer,nCell
-        TYPE(MESH), INTENT(INOUT) :: Msh
+        TYPE(Cell) :: nCell
+        INTEGER,INTENT(IN) :: iVer,jVer
         INTEGER :: loc_i,loc_j
 
-        print *,"permute ",iVer,jVer,'in cell',nCell
+        ! print *,"permute ",iVer,jVer,'in cell',nCell
 
-        loc_i = FINDLOC(Msh%Sommets(nCell,:),iVer,DIM=1)
-        loc_j = FINDLOC(Msh%Sommets(nCell,:),jVer,DIM=1)
-        Msh%Sommets(nCell,loc_i) = jVer
-        MSh%Sommets(nCell,loc_j) = iVer
+        loc_i = FINDLOC(nCell%Sommets(:),iVer,DIM=1)
+        loc_j = FINDLOC(nCell%Sommets(:),jVer,DIM=1)
+        nCell%Sommets(loc_i) = jVer
+        nCell%Sommets(loc_j) = iVer
         ! print *,Msh%Sommets(nCell,:)
 
     END SUBROUTINE
 
-    SUBROUTINE Insert_Vertex_onCell(iVer,jVer,nCell,Msh,bef_aft)   ! Insert vertex i behind/after Vertex j in Sommets(nCell,:)
+    SUBROUTINE Insert_Vertex_onCell(iVer,jVer,nCell,bef_aft)   ! Insert vertex i behind/after Vertex j in Sommets(nCell,:)
         IMPLICIT NONE
-        INTEGER,INTENT(IN) :: iVer,jVer,nCell
-        TYPE(MESH), INTENT(INOUT) :: Msh
-        INTEGER, DIMENSION(Msh%NbSom(nCell)) :: temp_Sommets
+        INTEGER,INTENT(IN) :: iVer,jVer
+        TYPE(Cell) :: nCell
+        INTEGER, DIMENSION(nCell%NbSom) :: temp_Sommets
         INTEGER :: loc_j
         Character(len=3), INTENT(IN), OPTIONAL :: bef_aft
 
-        ! print *,"insert ",iVer,jVer,'in cell',nCell
-        ! write(*,'("insert ",i3,1x,i3,1x,"in cell",i3)') iVer,jVer,nCell
-        ! print *,Msh%Sommets(nCell,1:Msh%NbSom(nCell))
-        temp_Sommets = Msh%Sommets(nCell,1:Msh%NbSom(nCell))
-        loc_j = FINDLOC(Msh%Sommets(nCell,:),jVer,DIM=1)
+        temp_Sommets = nCell%Sommets(1:nCell%NbSom)
+        loc_j = FINDLOC(nCell%Sommets(:),jVer,DIM=1)
 
-        ! print *,loc_j
         IF(bef_aft == 'bef') THEN
             loc_j = loc_j - 1
         END IF
-        ! print *,loc_j
-        Msh%Sommets(nCell,1:loc_j) = temp_Sommets(1:loc_j)
-        Msh%Sommets(nCell,loc_j+1) = iVer
-        Msh%Sommets(nCell,loc_j+2:Msh%NbSom(nCell)+1) = temp_Sommets(loc_j+1:Msh%NbSom(nCell))
-        Msh%NbSom(nCell) = Msh%NbSom(nCell) + 1
+
+        nCell%Sommets(1:loc_j) = temp_Sommets(1:loc_j)
+        nCell%Sommets(loc_j+1) = iVer
+        nCell%Sommets(loc_j+2:nCell%NbSom+1) = temp_Sommets(loc_j+1:nCell%NbSom)
+
+        nCell%NbSom = nCell%NbSom + 1
 
     END SUBROUTINE Insert_Vertex_onCell
 
     SUBROUTINE IsDelauney(Msh)                  ! Check if the mesh is Delauney, if not print the first vertex inside the circumcircle of a triangle
         IMPLICIT NONE
         TYPE(MESH) :: Msh
+        TYPE(Cell) :: nCell
         LOGICAL :: IsDelaun
-        INTEGER :: nCell, iCell, iVer,ipVer, jVer,jpVer, tVer
-        INTEGER :: i,j
+        INTEGER :: iCell, iVer,ipVer, jVer,jpVer, tVer
+        INTEGER :: i,j,n
 
         IsDelaun = .TRUE.
 
-        DO nCell=1,Msh%Nb_Cell
+        DO n=1,Msh%Nb_Cell
+            nCell = Msh%Cells(n)
             DO i=1,3
-            iCell = Msh%CNeigh(nCell,i)
-            iVer  = Msh%Sommets(nCell,mod(i  ,3)+1)
-            ipVer = Msh%Sommets(nCell,mod(i+1,3)+1)
+            iCell = nCell%CNeigh(i)
+            iVer  = nCell%Sommets(mod(i  ,3)+1)
+            ipVer = nCell%Sommets(mod(i+1,3)+1)
             IF(iCell .NE. 0) THEN
                 DO j =1,3
-                    jVer  = Msh%Sommets(iCell,mod(j  ,3)+1)
-                    jpVer = Msh%Sommets(iCell,mod(j+1,3)+1)
+                    jVer  = nCell%Sommets(mod(j  ,3)+1)
+                    jpVer = nCell%Sommets(mod(j+1,3)+1)
                     IF((jVer == iVer .AND. jpVer == ipVer) .OR.  (jVer == ipVer .AND. jpVer == iVer) ) THEN
 
-                        tVer = Msh%Sommets(iCell,mod(j+2,3)+1)
+                        tVer = nCell%Sommets(mod(j+2,3)+1)
                         IsDelaun = .NOT. IsInCircum(nCell,tVer,Msh)
                         IF(.NOT. IsDelaun) THEN 
                             Print *,"This Mesh is Delauney : ",IsDelaun
-                            write(*,fmt='(" Vertex ",i3," Is inside the circum circle of ",i3)') tVer,nCell
+                            ! write(*,fmt='(" Vertex ",i3," Is inside the circum circle of ",i3)') tVer,nCell
                         RETURN
                         END IF
                     END IF
@@ -257,15 +233,16 @@ CONTAINS
 
     FUNCTION IsInCircum(nCell,tVer,Msh)         ! Check if the vertex tVer is inside the circumcircle of the triangle nCell
         IMPLICIT NONE
-        INTEGER :: nCell, tVer
-        TYPE(Mesh) :: Msh
+        INTEGER,    INTENT(IN) :: tVer
+        TYPE(Mesh), INTENT(IN) :: Msh
+        TYPE(Cell), INTENT(IN) :: nCell
         REAL(prec), DIMENSION(2) :: c1,c2,c3, P
         REAL(prec), DIMENSION(3) :: v1,v2,v3
         LOGICAL :: IsInCircum
 
-        c1 = Msh%Coord(Msh%Sommets(nCell,1),:)
-        c2 = Msh%Coord(Msh%Sommets(nCell,2),:)
-        c3 = Msh%Coord(Msh%Sommets(nCell,3),:)
+        c1 = Msh%Coord(nCell%Sommets(1),:)
+        c2 = Msh%Coord(nCell%Sommets(2),:)
+        c3 = Msh%Coord(nCell%Sommets(3),:)
         P  = Msh%Coord(tVer,:)
 
         v1(1:2) = c1-P; v1(3) = (norm2(c1-P))**2
@@ -316,7 +293,8 @@ CONTAINS
         IF (i_hsh == 0) THEN
 
             IF(Msh%NbrObj >= Msh%Nb_Edg) THEN
-                print *, "Error: Exceeded maximum number of edges."
+                print *, "Error: Exceeded maximum number of edges. Nb edges :",Msh%NbrObj 
+                print *, "Processed ",iTri," Numbers of Cells out of ", Msh%Nb_Cell
                 STOP
             END IF
             key = iVer1 + iVer2
@@ -342,7 +320,7 @@ CONTAINS
 
     FUNCTION IsConvex(nCell, Msh)               ! Check if the cell nCell is convex
         IMPLICIT NONE
-        INTEGER, INTENT(IN) :: nCell
+        TYPE(Cell), INTENT(IN) :: nCell
         TYPE(MESH), INTENT(IN) :: Msh
         REAL(prec),DIMENSION(2) :: Coord_i,Coord_ip, Coord_j,Coord_jp, Coord_k
         REAL(prec),DIMENSION(2) :: i_To_j, j_To_k
@@ -352,17 +330,17 @@ CONTAINS
 
         IsConvex = .TRUE.
 
-        DO i=1,Msh%NbSom(nCell)
+        DO i=1,nCell%NbSom
 
-        iVer = Msh%Sommets(nCell,mod(i  ,Msh%NbSom(nCell))+1)
-        ipVer= Msh%Sommets(nCell,mod(i+1,Msh%NbSom(nCell))+1)
+        iVer = nCell%Sommets(mod(i  ,nCell%NbSom)+1)
+        ipVer= nCell%Sommets(mod(i+1,nCell%NbSom)+1)
         Coord_i = Msh%Coord(iVer,:)
         Coord_ip= Msh%Coord(ipVer,:)
 
-        DO j=i,Msh%NbSom(nCell)
+        DO j=i,nCell%NbSom
 
-        jVer = Msh%Sommets(nCell,mod(j  ,Msh%NbSom(nCell))+1)
-        jpVer= Msh%Sommets(nCell,mod(j+1,Msh%NbSom(nCell))+1)
+        jVer = nCell%Sommets(mod(j  ,nCell%NbSom)+1)
+        jpVer= nCell%Sommets(mod(j+1,nCell%NbSom)+1)
         Coord_j = Msh%Coord(jVer,:)
         Coord_jp= Msh%Coord(jpVer,:)
 
@@ -374,11 +352,11 @@ CONTAINS
         END DO
         END DO
 
-        DO i=1,Msh%NbSom(nCell)
+        DO i=1,nCell%NbSom
 
-            iVer = Msh%Sommets(nCell,mod(i  ,Msh%NbSom(nCell))+1)
-            jVer = Msh%Sommets(nCell,mod(i+1,Msh%NbSom(nCell))+1)
-            kVer = Msh%Sommets(nCell,mod(i+2,Msh%NbSom(nCell))+1)
+            iVer = nCell%Sommets(mod(i  ,nCell%NbSom)+1)
+            jVer = nCell%Sommets(mod(i+1,nCell%NbSom)+1)
+            kVer = nCell%Sommets(mod(i+2,nCell%NbSom)+1)
             Coord_i = Msh%Coord(iVer,:)
             Coord_j = Msh%Coord(jVer,:)
             Coord_k = Msh%Coord(kVer,:)
@@ -393,5 +371,113 @@ CONTAINS
         END DO
 
     END FUNCTION IsConvex
+
+    SUBROUTINE Fuse_cells(iCell,jCell,Msh)
+        IMPLICIT NONE
+        TYPE(MESH), INTENT(INOUT) :: Msh
+        TYPE(CELL), INTENT(INOUT) :: iCell,jCell
+        INTEGER :: index_edg, Common_Edg, size_list
+        INTEGER :: Ver_1, Ver_2, Ver_temp, index_temp
+        INTEGER, DIMENSION(iCell%NbSom + jCell%NbSom -2) :: Sommets_temp
+
+        print *,'-------------------------'
+        ! Choix delete
+        print *, "FUSING CELLS ", iCell%index, " WITH ", jCell%index
+        IF(iCell%index == jCell%index) STOP "FUSE CELLS ERROR : SAME CELLS"
+        ! jCell%index = max(iCell%index,jCell%index); To_Rec_ind= min(iCell%index,jCell%index)
+        ! jCell = Msh%Cells(jCell%index); iCell = Msh%Cells(To_Rec_ind)
+
+        ! CNeigh(jEdg) = Cell_Nghb ; Cell2Edg(jEdg) = j_hsh
+        Common_Edg = iCell%Cell2Edg(FINDLOC(iCell%CNeigh(:), jCell%index, DIM=1))
+
+        Ver_1 = Msh%LstObj(Common_Edg,1); Ver_2 = Msh%LstObj(Common_Edg,2)
+
+        write(*,fmt='("Fusing cells", i3," with ",i3)')
+        print *, Msh%LstObj(Common_Edg,:)
+
+        ! CRef (?)
+
+        ! Sommets
+        ! ALLOCATE ???
+        print *,"iCell", iCell%Sommets(:)
+        print *,"jCell", jCell%Sommets(:)
+        print *, Ver_1, Ver_2
+
+        ! index_edg splits the Sommets list of iCell in two [1,..,index_edg] // [index_edg+1,...,NbSom]
+        ! find the edge in the Receiving cell
+        index_edg =     FINDLOC(iCell%Sommets(:),Ver_1,DIM=1)
+        index_edg = min(FINDLOC(iCell%Sommets(:),Ver_2,DIM=1),index_edg)
+
+        IF(index_edg ==1 .AND. (iCell%Sommets(iCell%NbSom) == Ver_1 .OR. iCell%Sommets(iCell%NbSom) == Ver_2) ) index_edg = iCell%NbSom
+
+
+        print *,"separation edge :", index_edg
+
+        Sommets_temp(1:index_edg) = iCell%Sommets(1:index_edg)
+        size_list = index_edg
+        index_temp = FINDLOC(jCell%Sommets(:), iCell%Sommets(index_edg), DIM=1)
+        ! IF(jCell%Sommets(mod(index_temp, jCell%NbSom)+1) == iCell%Sommets(mod(index_edg, jCell%NbSom)+1)) index_temp = index_temp +1
+
+        ! Add the deleted cells after the edge
+        DO WHILE(( Ver_temp .NE. Ver_1 .AND. Ver_temp .NE. Ver_2) .AND. (size_list .LT.  iCell%NbSom + jCell%NbSom -2))
+            index_temp = mod(index_temp, jCell%NbSom)+1
+            Ver_temp = jCell%Sommets( index_temp)
+            print *,"ver temp", Ver_temp
+            ! print *, Ver_1,Ver_2, Ver_temp .NE. Ver_1 ,Ver_temp .NE. Ver_2
+            
+            ! IF( Ver_temp == Ver_1 .OR. Ver_temp == Ver_2) EXIT
+
+            size_list = size_list + 1
+            Sommets_temp(size_list) = Ver_temp
+
+            print *,"iter", Sommets_temp
+            print *,"added", Ver_temp, "at position", index_temp
+        END DO
+
+        print *,"deleted cell received in full"
+
+        ! Add the Receiving cell's missing vertex to the list
+        IF(size_list .LT.  iCell%NbSom + jCell%NbSom -2) THEN 
+            index_temp = mod(index_edg+1, iCell%NbSom)+1
+            Ver_temp = iCell%Sommets( index_temp) 
+            size_list = size_list + 1
+            Sommets_temp(size_list) = Ver_temp
+        END IF
+            
+        DO WHILE(( Ver_temp .NE. Ver_1 .AND. Ver_temp .NE. Ver_2) .AND. (size_list .LT.  iCell%NbSom + jCell%NbSom -2))
+            index_temp = mod(index_temp, iCell%NbSom)+1
+            Ver_temp = iCell%Sommets( index_temp)
+            print *,"ver temp", Ver_temp
+
+            IF( Ver_temp == Ver_1 .OR. Ver_temp == Ver_2) EXIT
+            size_list = size_list + 1
+            Sommets_temp(size_list) = Ver_temp
+
+            print *,"iter", Sommets_temp
+            print *,"added", Ver_temp, "at position", index_temp
+        END DO
+
+
+        ! Sommets_temp(size_list:) = iCell%Sommets(index_edg:)
+
+        DEALLOCATE(iCell%Sommets)
+        ALLOCATE(iCell%Sommets(size_list))
+        
+        print *, size_list,',',sommets_temp
+        iCell%Sommets(:) = Sommets_Temp(1:size_list)
+
+
+        ! NbSom
+        iCell%NbSom = iCell%NbSom + jCell%NbSom -2
+        Msh%max_neigh_Cell = max(Msh%max_neigh_Cell, iCell%NbSom)
+
+        print *,'-------------------------'
+
+        Msh%Cells(iCell%index) = iCell
+        Msh%Cells(jCell%index) = Void_cell
+
+
+    END SUBROUTINE
+
 
 END MODULE mod_divers
