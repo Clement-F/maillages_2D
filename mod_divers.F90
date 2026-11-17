@@ -5,7 +5,7 @@ MODULE mod_divers
   USE mod_var
   IMPLICIT NONE
 
-    REAL(prec), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494459230
+    ! REAL(prec), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494459230
 
 CONTAINS
 
@@ -81,20 +81,43 @@ CONTAINS
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C
         REAL(prec) :: Signed_Surface
+        REAL(prec), DIMENSION(2) :: subs1,subs2
 
-        Signed_Surface = 0.5_prec*(det(B-A,C-A))
+        subs1 = B-A
+        subs2 = C-A
+        Signed_Surface = 0.5_prec*(det(subs1,subs2))
     END FUNCTION Signed_Surface
 
-    FUNCTION Coordonnee_barycentrique(A,B,C,P)  ! Calcul les coordonnées barycentriques du point P dans le triangle ABC
+    FUNCTION Coord_Bary(A,B,C,P)  ! Calcul les coordonnées barycentriques du point P dans le triangle ABC
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C,P
-        REAL(prec), DIMENSION(3) :: Coordonnee_barycentrique
+        REAL(prec), DIMENSION(3) :: Coord_Bary
 
-        Coordonnee_barycentrique(1) = Signed_Surface(B,C,P)/Signed_Surface(A,B,C)
-        Coordonnee_barycentrique(2) = Signed_Surface(C,A,P)/Signed_Surface(A,B,C)
-        Coordonnee_barycentrique(3) = Signed_Surface(A,B,P)/Signed_Surface(A,B,C)
+        Coord_Bary(1) = Signed_Surface(B,C,P)/Signed_Surface(A,B,C)
+        Coord_Bary(2) = Signed_Surface(C,A,P)/Signed_Surface(A,B,C)
+        Coord_Bary(3) = Signed_Surface(A,B,P)/Signed_Surface(A,B,C)
 
-    END FUNCTION Coordonnee_barycentrique
+    END FUNCTION Coord_Bary
+
+
+    FUNCTION Coord_Bary_FromTri(iTri,Msh,P)  ! Calcul les coordonnées barycentriques du point P dans le triangle ABC
+        IMPLICIT NONE
+        TYPE(Cell) :: iTri
+        TYPE(Mesh) :: Msh
+        REAL(prec), DIMENSION(2), INTENT(IN) :: P
+        REAL(prec), DIMENSION(3) :: Coord_Bary_FromTri
+        REAL(prec), DIMENSION(2) :: A,B,C
+
+        A = Msh%Coord(iTri%Sommets(1),:)
+        B = Msh%Coord(iTri%Sommets(2),:)
+        C = Msh%Coord(iTri%Sommets(3),:)
+
+        Coord_Bary_FromTri(1) = Signed_Surface(B,C,P)/Signed_Surface(A,B,C)
+        Coord_Bary_FromTri(2) = Signed_Surface(C,A,P)/Signed_Surface(A,B,C)
+        Coord_Bary_FromTri(3) = Signed_Surface(A,B,P)/Signed_Surface(A,B,C)
+
+    END FUNCTION Coord_Bary_FromTri
+
 
     FUNCTION Is_inside_triangle(A,B,C,P)        ! Check if the point P is inside the triangle ABC
         IMPLICIT NONE
@@ -102,8 +125,8 @@ CONTAINS
         LOGICAL :: Is_inside_triangle
 
         Is_inside_triangle = .FALSE.
-        IF(ALL(Coordonnee_barycentrique(A,B,C,P) >= 0.0_prec)) Is_inside_triangle = .TRUE.
-        IF(ALL(Coordonnee_barycentrique(A,B,C,P) <= 0.0_prec)) STOP "Point undefined"
+        IF(ALL(Coord_Bary(A,B,C,P) >= 0.0_prec)) Is_inside_triangle = .TRUE.
+        IF(ALL(Coord_Bary(A,B,C,P) <= 0.0_prec)) STOP "Point undefined"
 
     END FUNCTION Is_inside_triangle
 
@@ -174,7 +197,7 @@ CONTAINS
                 Ver2 = Msh%Coord(nCell%Sommets(mod(i +1,nCell%NbSom)+1),:)
                 normal(1) = Ver2(2) - Ver1(2); normal(2) = Ver1(1) - Ver2(1)
 
-                centroid = centroid + 0.5_prec*(DOT_Product(Ver1**2,normal) +  DOT_Product(Ver2**2,normal) + 4*DOT_Product( 0.5*(Ver1+Ver2),normal))
+                centroid = centroid + 0.5_prec*(DOT_Product(Ver1**2,normal) +  DOT_Product(Ver2**2,normal) + 4*DOT_Product( 0.5_prec*(Ver1+Ver2),normal))
             END DO
             nCell%centroid = centroid/nCell%Surface
             Msh%Cells(n) = nCell
@@ -233,72 +256,6 @@ CONTAINS
         nCell%NbSom = nCell%NbSom + 1
 
     END SUBROUTINE Insert_Vertex_onCell
-
-    SUBROUTINE IsDelauney(Msh)                  ! Check if the mesh is Delauney, if not print the first vertex inside the circumcircle of a triangle
-        IMPLICIT NONE
-        TYPE(MESH) :: Msh
-        TYPE(Cell) :: nCell
-        LOGICAL :: IsDelaun
-        INTEGER :: iCell, iVer,ipVer, jVer,jpVer, tVer
-        INTEGER :: i,j,n
-
-        IsDelaun = .TRUE.
-
-        DO n=1,Msh%Nb_Cell
-            nCell = Msh%Cells(n)
-            DO i=1,3
-            iCell = nCell%CNeigh(i)
-            iVer  = nCell%Sommets(mod(i  ,3)+1)
-            ipVer = nCell%Sommets(mod(i+1,3)+1)
-            IF(iCell .NE. 0) THEN
-                DO j =1,3
-                    jVer  = nCell%Sommets(mod(j  ,3)+1)
-                    jpVer = nCell%Sommets(mod(j+1,3)+1)
-                    IF((jVer == iVer .AND. jpVer == ipVer) .OR.  (jVer == ipVer .AND. jpVer == iVer) ) THEN
-
-                        tVer = nCell%Sommets(mod(j+2,3)+1)
-                        IsDelaun = .NOT. IsInCircum(nCell,tVer,Msh)
-                        IF(.NOT. IsDelaun) THEN 
-                            Print *,"This Mesh is Delauney : ",IsDelaun
-                            ! write(*,fmt='(" Vertex ",i3," Is inside the circum circle of ",i3)') tVer,nCell
-                        RETURN
-                        END IF
-                    END IF
-
-                END DO
-            END IF
-            END DO
-        END DO
-
-        Print *,"This Mesh is Delauney : ",IsDelaun
-
-        Contains 
-
-    END SUBROUTINE IsDelauney
-
-    FUNCTION IsInCircum(nCell,tVer,Msh)         ! Check if the vertex tVer is inside the circumcircle of the triangle nCell
-        IMPLICIT NONE
-        INTEGER,    INTENT(IN) :: tVer
-        TYPE(Mesh), INTENT(IN) :: Msh
-        TYPE(Cell), INTENT(IN) :: nCell
-        REAL(prec), DIMENSION(2) :: c1,c2,c3, P
-        REAL(prec), DIMENSION(3) :: v1,v2,v3
-        LOGICAL :: IsInCircum
-
-        c1 = Msh%Coord(nCell%Sommets(1),:)
-        c2 = Msh%Coord(nCell%Sommets(2),:)
-        c3 = Msh%Coord(nCell%Sommets(3),:)
-        P  = Msh%Coord(tVer,:)
-
-        v1(1:2) = c1-P; v1(3) = (norm2(c1-P))**2
-        v2(1:2) = c2-P; v2(3) = (norm2(c2-P))**2
-        v3(1:2) = c3-P; v3(3) = (norm2(c3-P))**2
-
-        IF(det(v1,v2,v3) >=0) THEN; IsInCircum = .TRUE.
-        ELSE ; IsInCircum = .FALSE.
-        END IF
-
-    END FUNCTION IsInCircum
 
     FUNCTION hash_find(iVer1, iVer2, Msh) RESULT(j_hsh)     ! Give the index of the edge (iVer1,iVer2) in the hash table, or 0 if not found
         IMPLICIT NONE
@@ -434,7 +391,7 @@ CONTAINS
 
         Ver_1 = Msh%LstObj(Common_Edg,1); Ver_2 = Msh%LstObj(Common_Edg,2)
 
-        write(*,fmt='("Fusing cells", i3," with ",i3)'), iCell%index, jCell%index
+        write(*,fmt='("Fusing cells", i3," with ",i3)') iCell%index, jCell%index
         ! CRef (?)
 
         ! Sommets
@@ -499,5 +456,151 @@ CONTAINS
 
     END SUBROUTINE
 
+    SUBROUTINE Cell_Delete(iCell,Msh)
+        INTEGER, INTENT(IN) :: iCell
+        TYPE(MESH), INTENT(INOUT):: Msh
+        TYPE(Cell) :: Cell_Neigh
+        INTEGER :: iCell_Neigh
+        INTEGER :: j,k
 
-END MODULE mod_divers
+
+        Do j=1,3
+            iCell_Neigh = Msh%Cells(iCell)%CNeigh(j); 
+            IF(iCell_Neigh .NE. 0) THEN 
+                Cell_Neigh  = Msh%Cells(iCell_Neigh)
+                DO k=1,3
+                IF(Cell_Neigh%CNeigh(k) == iCell ) Msh%Cells(iCell_Neigh)%CNeigh(k) = 0 ! Removing from the list of neighbours
+                END DO
+            END IF
+        END DO
+
+    END SUBROUTINE Cell_Delete
+
+
+    SUBROUTINE REALLOC_Mesh(Msh, Nb_Cell, Nb_Ver, Nb_Edg)
+        IMPLICIT NONE
+        TYPE(Mesh), INTENT(INOUT) :: Msh
+        INTEGER, INTENT(IN) :: Nb_Cell, Nb_Ver, Nb_Edg
+        TYPE(Mesh) :: Msh_Cpy
+        TYPE(Cell) :: nCell
+        INTEGER :: mCell, mVer, mEdg
+        INTEGER :: n
+
+        print *,"before after       :",Msh%Nb_Cell,"Cells, ",Msh%Nb_Ver,"Vertex",Msh%Nb_Edg,"Edges"
+        Print *,"Realloc mesh under :", Nb_Cell,"Cells, ",Nb_Ver,"Vertex", Nb_Edg,"Edges"
+
+        CALL Copy_Mesh(Msh,Msh_Cpy)
+
+        mCell = min(Nb_Cell, Msh%Nb_Cell)
+        mVer  = min(Nb_Ver , Msh%Nb_Ver )
+        mEdg  = min(Nb_Edg , Msh%Nb_Edg )
+        Msh%Nb_Cell = Nb_Cell; 
+        Msh%Nb_Ver = Nb_Ver; 
+        Msh%Nb_Edg = Nb_Edg
+
+        DEALLOCATE(Msh%Cells)
+        DEALLOCATE(Msh%VRef,  Msh%NbNeigh, Msh%VNeigh, Msh%Ver2Cell, Msh%Coord)
+        DEALLOCATE(Msh%Edg,   Msh%EdgNeigh)
+        DEALLOCATE(Msh%Bdr,   Msh%VBdr,     Msh%VIsOnBdr, Msh%EIsOnBdr)
+        ! DEALLOCATE(Msh%Head,  Msh%LstObj)
+
+
+        ! Cell
+        ALLOCATE(Msh%Cells(Nb_Cell))
+        Msh%Cells = Void_Cell
+        DO n =1,mCell
+            nCell = Msh_Cpy%Cells(n)
+            Msh%Cells(n) = nCell
+        END DO
+
+        ! Vertex
+        ALLOCATE(Msh%VRef(Nb_Ver),  Msh%NbNeigh(Nb_Ver),  Msh%Coord(Nb_Ver,2), Msh%VNeigh(Nb_Ver,Msh%max_neigh_Ver))
+        ALLOCATE(Msh%Ver2Cell(Msh%Nb_Ver,Msh%max_neigh_Ver))
+        Msh%VRef(1:mVer) = Msh_Cpy%VRef(1:mVer);                    Msh%NbNeigh(1:mVer)=  Msh_Cpy%NbNeigh(1:mVer);      Msh%Coord(1:mVer,:) = Msh_Cpy%Coord(1:mVer,:)
+        Msh%VNeigh(1:mVer,:) = Msh_Cpy%VNeigh(1:mVer,:);            Msh%Ver2Cell(1:mVer,:) = Msh_Cpy%Ver2Cell(1:mVer,:)
+
+        ALLOCATE(Msh%Edg(Msh%Nb_Edg,2),     Msh%EdgNeigh(Msh%Nb_Edg,2))
+        Msh%Edg(1:mEdg,:) = Msh_Cpy%Edg(1:mEdg,:);                  Msh%EdgNeigh(1:mEdg,:) = Msh_Cpy%EdgNeigh(1:mEdg,:)
+
+        ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Msh%Nb_Ver),   Msh%EIsOnBdr(Msh%Nb_Edg)) 
+        Msh%Bdr = Msh_Cpy%Bdr;               Msh%VBdr = Msh_Cpy%VBdr;        
+        Msh%VIsOnBdr(1:mVer) = Msh_Cpy%VIsOnBdr(1:mVer);     Msh%EIsOnBdr(1:mEdg) = Msh_Cpy%EIsOnBdr(1:mEdg)
+
+        ! ALLOCATE(Msh%Head( Msh%SizHead), Msh%LstObj(Msh%Nb_Edg,5))
+        ! Msh_Cpy%Head = Msh%Head;                    Msh_Cpy%LstObj = Msh%LstObj
+    END SUBROUTINE
+
+    SUBROUTINE Copy_Mesh(Msh,Msh_Cpy)
+        TYPE(Mesh), INTENT(IN) :: Msh
+        TYPE(Mesh), INTENT(OUT):: Msh_Cpy
+        TYPE(Cell) :: nCell
+        INTEGER :: n
+
+        ! Mesh
+        Msh_Cpy%DIM     = Msh%DIM
+        Msh_Cpy%Nb_Cell = Msh%Nb_Cell
+        Msh_Cpy%Nb_Ver = Msh%Nb_Ver
+        Msh_Cpy%Nb_Edg = Msh%Nb_Edg
+        Msh_Cpy%max_neigh_Cell = Msh%max_neigh_Cell
+        Msh_Cpy%max_neigh_Ver = Msh%max_neigh_Ver
+        Msh_Cpy%x_deb = Msh%x_deb; Msh_Cpy%x_fin = Msh%x_fin; Msh_Cpy%y_deb = Msh%y_deb; Msh_Cpy%y_fin = Msh%y_fin; 
+
+        Msh_Cpy%SizHead = 2*Msh_Cpy%Nb_Ver
+        Msh_Cpy%NbrObj = 0;
+
+        Msh_Cpy%Nb_CBdr = Msh%Nb_CBdr
+        Msh_Cpy%Nb_VBdr = Msh%Nb_VBdr
+        Msh_Cpy%Nb_EBdr = Msh%Nb_EBdr
+
+        ! Cell
+        ALLOCATE(Msh_Cpy%Cells(Msh_Cpy%Nb_Cell))
+        ! Msh_Cpy%Cells = Msh%Cells
+        DO n =1,Msh%Nb_Cell
+            nCell = Msh%Cells(n)
+            Msh_Cpy%Cells(n) = nCell
+        END DO
+
+        ! Vertex
+        ALLOCATE(Msh_Cpy%VRef(Msh_Cpy%Nb_Ver),      Msh_Cpy%NbNeigh(Msh_Cpy%Nb_Ver),    Msh_Cpy%Coord(Msh_Cpy%Nb_Ver,2))
+        ALLOCATE(Msh_Cpy%VNeigh(Msh_Cpy%Nb_Ver,Msh_Cpy%max_neigh_Ver),   Msh_Cpy%Ver2Cell(Msh_Cpy%Nb_Ver,Msh_Cpy%max_neigh_Ver))
+        Msh_Cpy%VRef = Msh%VRef;                    Msh_Cpy%NbNeigh=  Msh%NbNeigh;      Msh_Cpy%Coord = Msh%Coord
+        Msh_Cpy%VNeigh = Msh%VNeigh;                Msh_Cpy%Ver2Cell = Msh%Ver2Cell
+
+        ALLOCATE(Msh_Cpy%Edg(Msh_Cpy%Nb_Edg,2),     Msh_Cpy%EdgNeigh(Msh_Cpy%Nb_Edg,2))
+        Msh_Cpy%Edg = Msh%Edg;                      Msh_Cpy%EdgNeigh = Msh%EdgNeigh
+
+        ! print *, Msh_Cpy%Nb_Edg
+        ALLOCATE(Msh_Cpy%Bdr(Msh_Cpy%Nb_EBdr),       Msh_Cpy%VBdr(Msh_Cpy%Nb_VBdr),   Msh_Cpy%VIsOnBdr(Msh_Cpy%Nb_Ver),   Msh_Cpy%EIsOnBdr(Msh_Cpy%Nb_Edg)) 
+        Msh_Cpy%Bdr= Msh%Bdr;                           Msh_Cpy%VBdr = Msh%VBdr;        Msh_Cpy%VIsOnBdr = Msh%VIsOnBdr;     Msh_Cpy%EIsOnBdr = Msh%EIsOnBdr
+
+        ! ALLOCATE(Msh_Cpy%Head( Msh_Cpy%SizHead),    Msh_Cpy%LstObj(Msh%Nb_Edg,5))
+        ! Msh_Cpy%Head = Msh%Head;                    Msh_Cpy%LstObj = Msh%LstObj
+
+    END SUBROUTINE Copy_Mesh
+
+    SUBROUTINE Out_Cell(inCell)
+        IMPLICIT NONE
+        TYPE(Cell), INTENT(IN) :: inCell
+        CHARACTER (len=63):: fmt_
+        INTEGER :: i
+
+        write(*,fmt='("----------- cell ",i3," -----------")') inCell%index
+        write(*,fmt='("Ref of Cell :", i3)') inCell%CRef
+        write(*,fmt='("Nb of vertex:", i3)') inCell%NbSom
+
+        fmt_ = '("Sommets :"'//Repeat(",i4",inCell%NbSom)//")"
+        write(*,fmt=fmt_) inCell%Sommets(:)
+        fmt_ = '("Voisins :"'//Repeat(",i4",inCell%NbSom)//")"
+        write(*,fmt=fmt_) inCell%CNeigh(:)
+        fmt_ = '("Edges :"'//Repeat(",i4",inCell%NbSom)//")"
+        write(*,fmt=fmt_) inCell%Cell2Edg(:)
+
+        write(*,fmt='("Centre :",f8.3,";",f8.3)') inCell%Center
+        write(*,fmt='("Surface:",f8.3)') inCell%Surface
+
+
+
+
+    END SUBROUTINE 
+
+END MODULE mod_divers  

@@ -396,6 +396,7 @@ CONTAINS
     DO ncell=1,nb_cell
        READ(11,*) temp(1:8)
        BACKSPACE(11, IOSTAT=ios_back)
+       
        IF (ios_back /= 0) THEN
           WRITE(*,*) "ERROR IN BACKSPACE IN  SUBROUTINE read_msh"
           STOP

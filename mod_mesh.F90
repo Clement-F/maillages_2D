@@ -1,11 +1,8 @@
 MODULE mod_mesh
 
-    use mod_var
-    use mod_divers
-
+    use mod_Delaunay
     IMPLICIT NONE
     
-    INTEGER, DIMENSION(0:2,2), PARAMETER :: tri2edg = reshape([1,2, 2,3, 3,1], [3,2])
 
     Contains
 
@@ -180,103 +177,100 @@ MODULE mod_mesh
 
     END SUBROUTINE Readvtk
 
+    ! SUBROUTINE ReadMsh(namefile,Msh)
 
-    SUBROUTINE ReadMsh(namefile,Msh)
+    !     IMPLICIT NONE
+    !     CHARACTER(LEN=*), INTENT(IN) :: namefile
+    !     TYPE(MESH), INTENT(INOUT) :: Msh
+    !     TYPE(Cell) :: nCell
+    !     INTEGER,DIMENSION(9) :: temp
+    !     REAL(prec), DIMENSION(2) :: XX1
+    !     REAL(prec) :: tempr
+    !     INTEGER :: n,i, nface, NElem
 
-        IMPLICIT NONE
-        CHARACTER(LEN=*), INTENT(IN) :: namefile
-        TYPE(MESH), INTENT(INOUT) :: Msh
-        TYPE(Cell) :: nCell
-        INTEGER,DIMENSION(9) :: temp
-        REAL(prec), DIMENSION(2) :: XX1
-        REAL(prec) :: tempr
-        INTEGER :: n,i, nface
+    !     OPEN(11,file=TRIM(namefile),status="old")
+    !     CALL JUMP(4,11)
 
-        OPEN(11,file=TRIM(namefile),status="old")
-        CALL JUMP(4,11)
-
-        READ(11,*) Msh%Nb_Ver
-        ALLOCATE(Msh%Coord(Msh%Nb_Ver,2))
+    !     READ(11,*) Msh%Nb_Ver
+    !     ALLOCATE(Msh%Coord(Msh%Nb_Ver,2))
         
-        Msh%x_deb =10._prec**prec
-        Msh%y_deb =10._prec**prec
-        Msh%x_fin=-10._prec**prec
-        Msh%y_fin=-10._prec**prec
+    !     Msh%x_deb =10._prec**prec
+    !     Msh%y_deb =10._prec**prec
+    !     Msh%x_fin=-10._prec**prec
+    !     Msh%y_fin=-10._prec**prec
 
-        !! Grid points allocation !!
-        DO i=1,Msh%Nb_Ver
-            READ(11,*) temp(1),XX1,tempr
+    !     !! Grid points allocation !!
+    !     DO i=1,Msh%Nb_Ver
+    !         READ(11,*) temp(1),XX1,tempr
 
-            Msh%Coord(i,:)=XX1
+    !         Msh%Coord(i,:)=XX1
 
-            Msh%Vref(i)=0
-            Msh%nbneigh(i)=0
+    !         Msh%Vref(i)=0
+    !         Msh%nbneigh(i)=0
 
-            Msh%x_deb=MIN(Msh%x_deb,XX1(1))
-            Msh%y_deb=MIN(Msh%y_deb,XX1(2))
-            Msh%x_fin=MAX(Msh%x_fin,XX1(1))
-            Msh%y_fin=MAX(Msh%y_fin,XX1(2))
+    !         Msh%x_deb=MIN(Msh%x_deb,XX1(1))
+    !         Msh%y_deb=MIN(Msh%y_deb,XX1(2))
+    !         Msh%x_fin=MAX(Msh%x_fin,XX1(1))
+    !         Msh%y_fin=MAX(Msh%y_fin,XX1(2))
 
-        END DO
-        CALL JUMP(2,11)
+    !     END DO
+    !     CALL JUMP(2,11)
 
 
-        !! Determine the number of tri !!
-        READ(11,*) Msh%Nb_Cell
+    !     !! Determine the number of tri !!
+    !     READ(11,*) NElem
 
-        ALLOCATE(Msh%Edg(Msh%Nb_Cell,2),Msh%EIsOnBdr(Msh%Nb_Cell))
-        Msh%Nb_Ebdr=0
-        Msh%Nb_Edg =0
+    !     ! ALLOCATE(Msh%Edg(Msh%Nb_Cell,2),Msh%EIsOnBdr(Msh%Nb_Cell))
+    !     Msh%Nb_Ebdr=0
+    !     Msh%Nb_Edg =0
 
-        bcl_face:DO nface=1,Msh%Nb_Cell
-        READ(11,*) temp(1:7)
+    !     bcl_face:DO nface=1,NElem
+    !     READ(11,*) temp(1:7)
 
-        IF (temp(2)/=1) EXIT bcl_face
+    !     IF (temp(2)/=1) EXIT bcl_face
 
-        Msh%Nb_Ebdr=Msh%Nb_Ebdr+1
-        Msh%Edg(nb_bdr_edges,:)=(/temp(6),temp(7)/)
-        bdr_edge_ref(nb_bdr_edges)=temp(4)
+    !     nb_bdr_edges=nb_bdr_edges+1
+    !     bdr_edge_nodes(nb_bdr_edges,:)=(/temp(6),temp(7)/)
+    !     bdr_edge_ref(nb_bdr_edges)=temp(4)
         
-        point(temp(6))%ref=temp(4)
-        END DO bcl_face
+    !     point(temp(6))%ref=temp(4)
+    !     END DO bcl_face
 
-        nb_face_bdr_gmsh=nb_bdr_edges     ! Number of bdry faces !
-        nb_cell=nelem-nb_face_bdr_gmsh    ! Number of cells      !
-        ALLOCATE(mesh(nb_cell))
+    !     nb_face_bdr_gmsh=nb_bdr_edges     ! Number of bdry faces !
+    !     nb_cell=nelem-nb_face_bdr_gmsh    ! Number of cells      !
+    !     ALLOCATE(mesh(nb_cell))
 
-        CLOSE(11)
-        OPEN(11,file=TRIM(name_mesh),status="old")
-        CALL JUMP(8+nb_pts+nb_face_bdr_gmsh,11)
+    !     CLOSE(11)
+    !     OPEN(11,file=TRIM(name_mesh),status="old")
+    !     CALL JUMP(8+nb_pts+nb_face_bdr_gmsh,11)
 
-        !! Mesh nodes and number of neighboring cells of the node !!
-        DO ncell=1,nb_cell
-        READ(11,*) temp(1:8)
-        BACKSPACE(11, IOSTAT=ios_back)
-        IF (ios_back /= 0) THEN
-            WRITE(*,*) "ERROR IN BACKSPACE IN  SUBROUTINE ReadMsh"
-            STOP
-        END IF
+    !     !! Mesh nodes and number of neighboring cells of the node !!
+    !     DO ncell=1,nb_cell
+    !     READ(11,*) temp(1:8)
+    !     BACKSPACE(11, IOSTAT=ios_back)
+    !     IF (ios_back /= 0) THEN
+    !         WRITE(*,*) "ERROR IN BACKSPACE IN  SUBROUTINE ReadMsh"
+    !         STOP
+    !     END IF
         
-        ntype=temp(2)+1
-        mesh(ncell)%nb_face=ntype
-        ALLOCATE(mesh(ncell)%node(ntype),mesh(ncell)%neigh(ntype))
-        ALLOCATE(mesh(ncell)%length(ntype),mesh(ncell)%Normal(ntype,2))
+    !     ntype=temp(2)+1
+    !     mesh(ncell)%nb_face=ntype
+    !     ALLOCATE(mesh(ncell)%node(ntype),mesh(ncell)%neigh(ntype))
+    !     ALLOCATE(mesh(ncell)%length(ntype),mesh(ncell)%Normal(ntype,2))
         
-        READ(11,*) temp(1:5+ntype)
-        mesh(ncell)%ref=temp(4)
-        mesh(ncell)%node(1:ntype)=temp(6:5+ntype)
+    !     READ(11,*) temp(1:5+ntype)
+    !     mesh(ncell)%ref=temp(4)
+    !     mesh(ncell)%node(1:ntype)=temp(6:5+ntype)
 
-        DO npt=1,ntype
-            pt=mesh(ncell)%node(npt)
-            point(pt)%nb_neigh=point(pt)%nb_neigh+1
-        END DO
-        END DO
+    !     DO npt=1,ntype
+    !         pt=mesh(ncell)%node(npt)
+    !         point(pt)%nb_neigh=point(pt)%nb_neigh+1
+    !     END DO
+    !     END DO
 
-        CLOSE(11)
+    !     CLOSE(11)
 
-    END SUBROUTINE ReadMsh
-
-
+    ! END SUBROUTINE ReadMsh
 
     SUBROUTINE WriteMesh(namefile, Msh)
         IMPLICIT NONE
@@ -386,6 +380,7 @@ MODULE mod_mesh
         IF(ALLOCATED(Msh%Edg))      DEALLOCATE(Msh%Edg)
         IF(ALLOCATED(Msh%EdgNeigh)) DEALLOCATE(Msh%EdgNeigh)
         IF(ALLOCATED(Msh%EIsOnBdr)) DEALLOCATE(Msh%EIsOnBdr)
+        IF(ALLOCATED(Msh%VIsOnBDr)) DEALLOCATE(Msh%VIsOnBdr)
 
         ALLOCATE(Msh%LstObj  (Msh%Nb_Edg+1,5),   Msh%Edg     (Msh%Nb_Edg,2), Msh%EdgNeigh(Msh%Nb_Edg,2), Msh%Head(Msh%SizHead+1))
         ALLOCATE(Msh%EIsOnBdr(Msh%Nb_Edg),       Msh%VIsOnBdr(Msh%Nb_Ver))
@@ -438,7 +433,8 @@ MODULE mod_mesh
         
         IF(ALLOCATED(Msh%VNeigh))   DEALLOCATE(Msh%VNeigh)
         IF(ALLOCATED(Msh%Bdr))      DEALLOCATE(Msh%Bdr)
-
+        IF(ALLOCATED(Msh%Ver2Cell)) DEALLOCATE(Msh%Ver2Cell)
+        
         ALLOCATE(Msh%VNeigh(Msh%Nb_Ver, Msh%max_neigh_Ver), Msh%Bdr(Msh%Nb_EBdr))
         ALLOCATE(Msh%Ver2Cell(Msh%Nb_Ver, Msh%max_neigh_Ver))
 

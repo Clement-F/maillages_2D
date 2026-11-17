@@ -1,4 +1,4 @@
-PROGRAM main
+Program main
     use mod_mesh
     IMPLICIT NONE
 
@@ -10,26 +10,17 @@ PROGRAM main
     print *, "Reading mesh file..."
     CALL ReadMesh("Meshes/carre_base.mesh",Msh)
     print *, "Mesh file read successfully."
-    
-    CALL IsDelauney(Msh)
+ 
 
-    ! CALL OUTMESH(Msh)
-    ! CALL Correct_Mesh(Msh)
-    ! CALL OUTMESH(Msh)
 
-    CALL Calc_Surface(Msh)
-    CALL Calc_Centroid(Msh)
+    ! CALL REALLOC_Mesh(Msh, 16, 13, 29)
 
-    print *,"Dual mesh writing"
-    CALL Voronoi(Msh,Msh_dual)
-    print *,"wrote dual mesh"
+    CALL add_Point(Msh,(/-0.12746987_Prec,0.1587634987_prec/))
+    CALL add_Point(Msh,(/-0.12746987_Prec,0.1887634987_prec/))
+    CALL add_Point(Msh,(/-0.12746987_Prec,0.2387634987_prec/))
+    CALL add_Point(Msh,(/-0.12746987_Prec,0.2587634987_prec/))
 
     print *, "Writing mesh file..."
     CALL Write_vtk("carre_out.vtk",Msh)
     print *, "Mesh file written successfully."
-
-    print *, "Writing mesh dual file..."
-    CALL Write_vtk("carre_dual_out.vtk",Msh_dual)
-    print *, "Mesh file written successfully."
-
-END PROGRAM main
+END program

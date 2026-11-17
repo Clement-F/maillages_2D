@@ -36,9 +36,13 @@ all: $(SORTIE)
 # it if it hasn't changed, which contradicts 'make' view
 # of the world (cmake doesn't seem to have this issue)
 
-mod_mesh.o mod_mesh.mod: mod_mesh.F90 mod_var.mod mod_divers.mod;
+mod_mesh.o mod_mesh.mod: mod_mesh.F90 mod_Delaunay.mod
 	$(COMP) $(FFLAGS) $(OTPS) -c $<
 	touch mod_mesh.mod
+
+mod_Delaunay.o mod_Delaunay.mod : mod_Delaunay.F90 mod_var.mod mod_divers.mod;
+	$(COMP) $(FFLAGS) $(OTPS) -c $<
+	touch mod_Delaunay.mod
 
 mod_divers.o mod_divers.mod: mod_divers.F90 precis.mod mod_var.mod;
 	$(COMP) $(FFLAGS) $(OTPS) -c $<
