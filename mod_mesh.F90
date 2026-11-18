@@ -46,6 +46,9 @@ MODULE mod_mesh
         IF(dim==2)READ(10,*) (Msh%Coord(i,1:2),         Msh%Vref(i),i=1,Msh%Nb_Ver)  
         IF(dim==3)READ(10,*) (Msh%Coord(i,1:2),Rtemp,   Msh%Vref(i),i=1,Msh%Nb_Ver)  
 
+        Msh%x_deb = minval(Msh%Coord(:,1));    Msh%x_fin = maxval(Msh%Coord(:,1))
+        Msh%y_deb = minval(Msh%Coord(:,2));    Msh%y_fin = maxval(Msh%Coord(:,2))
+
         READ(10,*) blank
         IF(TRIM(blank)=="Edges") THEN
             READ(10,*) Msh%Nb_Ebdr
@@ -434,7 +437,7 @@ MODULE mod_mesh
         IF(ALLOCATED(Msh%VNeigh))   DEALLOCATE(Msh%VNeigh)
         IF(ALLOCATED(Msh%Bdr))      DEALLOCATE(Msh%Bdr)
         IF(ALLOCATED(Msh%Ver2Cell)) DEALLOCATE(Msh%Ver2Cell)
-        
+
         ALLOCATE(Msh%VNeigh(Msh%Nb_Ver, Msh%max_neigh_Ver), Msh%Bdr(Msh%Nb_EBdr))
         ALLOCATE(Msh%Ver2Cell(Msh%Nb_Ver, Msh%max_neigh_Ver))
 
@@ -942,6 +945,21 @@ MODULE mod_mesh
 
     END SUBROUTINE Correct_Mesh
 
+    SUBROUTINE Lloyd(Msh)
+        IMPLICIT NONE
+        TYPE(Mesh), INTENT(INOUT) :: Msh
+
+        TYPE(Cell) :: nCell
+        INTEGER :: i,n
+
+        ! Calcul les centroides
+
+        ! place les noeuds du Msh sur les centroides
+
+        ! génère un maillage à partir de ces noeuds
+
+
+    END SUBROUTINE Lloyd
 
     
 END MODULE mod_mesh

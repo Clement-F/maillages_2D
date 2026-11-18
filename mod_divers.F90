@@ -494,9 +494,9 @@ CONTAINS
         mCell = min(Nb_Cell, Msh%Nb_Cell)
         mVer  = min(Nb_Ver , Msh%Nb_Ver )
         mEdg  = min(Nb_Edg , Msh%Nb_Edg )
-        Msh%Nb_Cell = Nb_Cell; 
-        Msh%Nb_Ver = Nb_Ver; 
-        Msh%Nb_Edg = Nb_Edg
+        ! Msh%Nb_Cell = Nb_Cell; 
+        ! Msh%Nb_Ver = Nb_Ver; 
+        ! Msh%Nb_Edg = Nb_Edg
 
         DEALLOCATE(Msh%Cells)
         DEALLOCATE(Msh%VRef,  Msh%NbNeigh, Msh%VNeigh, Msh%Ver2Cell, Msh%Coord)
@@ -515,19 +515,32 @@ CONTAINS
 
         ! Vertex
         ALLOCATE(Msh%VRef(Nb_Ver),  Msh%NbNeigh(Nb_Ver),  Msh%Coord(Nb_Ver,2), Msh%VNeigh(Nb_Ver,Msh%max_neigh_Ver))
-        ALLOCATE(Msh%Ver2Cell(Msh%Nb_Ver,Msh%max_neigh_Ver))
+        ALLOCATE(Msh%Ver2Cell(Nb_Ver,Msh%max_neigh_Ver))
         Msh%VRef(1:mVer) = Msh_Cpy%VRef(1:mVer);                    Msh%NbNeigh(1:mVer)=  Msh_Cpy%NbNeigh(1:mVer);      Msh%Coord(1:mVer,:) = Msh_Cpy%Coord(1:mVer,:)
         Msh%VNeigh(1:mVer,:) = Msh_Cpy%VNeigh(1:mVer,:);            Msh%Ver2Cell(1:mVer,:) = Msh_Cpy%Ver2Cell(1:mVer,:)
 
-        ALLOCATE(Msh%Edg(Msh%Nb_Edg,2),     Msh%EdgNeigh(Msh%Nb_Edg,2))
+        ALLOCATE(Msh%Edg(Nb_Edg,2),     Msh%EdgNeigh(Nb_Edg,2))
         Msh%Edg(1:mEdg,:) = Msh_Cpy%Edg(1:mEdg,:);                  Msh%EdgNeigh(1:mEdg,:) = Msh_Cpy%EdgNeigh(1:mEdg,:)
 
-        ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Msh%Nb_Ver),   Msh%EIsOnBdr(Msh%Nb_Edg)) 
+        ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
         Msh%Bdr = Msh_Cpy%Bdr;               Msh%VBdr = Msh_Cpy%VBdr;        
         Msh%VIsOnBdr(1:mVer) = Msh_Cpy%VIsOnBdr(1:mVer);     Msh%EIsOnBdr(1:mEdg) = Msh_Cpy%EIsOnBdr(1:mEdg)
 
         ! ALLOCATE(Msh%Head( Msh%SizHead), Msh%LstObj(Msh%Nb_Edg,5))
         ! Msh_Cpy%Head = Msh%Head;                    Msh_Cpy%LstObj = Msh%LstObj
+    END SUBROUTINE
+
+    SUBROUTINE ALLOCATE_Mesh(Msh,Nb_Cell, Nb_Ver, Nb_Edg)
+        IMPLICIT NONE
+        TYPE(Mesh), INTENT(INOUT) :: Msh
+        INTEGER, INTENT(IN) :: Nb_Cell, Nb_Ver, Nb_Edg
+        
+        ALLOCATE(Msh%Cells(Nb_Cell))
+        ALLOCATE(Msh%VRef(Nb_Ver),  Msh%NbNeigh(Nb_Ver),  Msh%Coord(Nb_Ver,2), Msh%VNeigh(Nb_Ver,Msh%max_neigh_Ver))
+        ALLOCATE(Msh%Ver2Cell(Nb_Ver,Msh%max_neigh_Ver))
+        ALLOCATE(Msh%Edg(Nb_Edg,2),     Msh%EdgNeigh(Nb_Edg,2))
+        ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
+
     END SUBROUTINE
 
     SUBROUTINE Copy_Mesh(Msh,Msh_Cpy)

@@ -117,15 +117,17 @@ CONTAINS
       ! traitement des boucles ou des maillages non connexes
 
       DO WHILE(Mrk(iTri) == Mrk(0) +1 .OR. iTri == 0)
-        print *,"skip",iTri
+        ! print *,"skip",iTri
         iTri = edge_case
         edge_case = edge_case +1
       END DO 
 
-      print *,"now in ,", iTri
       Tri = Msh%Cells(iTri)
       IF(iTri .NE. 0) THEN 
-        
+        CALL Out_Cell(Tri)
+
+        print *, Msh%Coord(Tri%Sommets(:),:)
+
         Mrk(iTri) = Mrk(0)+1
         Coord_bary = Coord_Bary_FromTri(Tri, Msh, Point)
 
@@ -143,10 +145,10 @@ CONTAINS
         IF(Coord_bary(3) .LT. -eps0 .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(3); ENDIF; 
 
       END IF
-      print *,"a ",iTri
+      ! print *,"a ",iTri
     END DO
 
-    print *, "found in :", iTri
+    ! print *, "found in :", iTri
 
     Localise_Tri = 0
     IF(inTri) THEN; Localise_Tri(1) = 1; Localise_Tri(2) = iTri; ENDIF
@@ -207,8 +209,8 @@ CONTAINS
 
       END DO
 
-    print *,'size of cavity', Sizeof_Cavity
-    print *,cavity(1:Sizeof_Cavity)
+    ! print *,'size of cavity', Sizeof_Cavity
+    ! print *,cavity(1:Sizeof_Cavity)
     END DO
 
 
@@ -226,7 +228,7 @@ CONTAINS
     DO i=1,Sizeof_Cavity
       ! Deleting it from the list of neighbours
       iTri_Cavity = Cavity(i);
-      print *,'Delete', iTri_Cavity
+      ! print *,'Delete', iTri_Cavity
       CALL Cell_Delete(iTri_Cavity, Msh)
     END DO
 
@@ -246,14 +248,14 @@ CONTAINS
     boundary = 1
 
     DO i=1,Sizeof_Cavity
-      print *, 'boundary size', sizeof_boundary
+      ! print *, 'boundary size', sizeof_boundary
       DO j=0,2
         Cell_ = Msh%Cells(cavity(i))
         iVer1 = Cell_%Sommets(Tri2Edg(j,1))
         iVer2 = Cell_%Sommets(Tri2Edg(j,2))
         IsOnBdr = .False.
 
-        print *, iVer1,iVer2, Cell_%index
+        ! print *, iVer1,iVer2, Cell_%index
 
         ! on regarde si elle a déjà été ajouté à la liste frontière
         Do k=1,sizeof_boundary
@@ -265,7 +267,7 @@ CONTAINS
             boundary(k,1) = boundary(sizeof_boundary,1)
             boundary(k,2) = boundary(sizeof_boundary,2)
             boundary(k,3) = boundary(sizeof_boundary,3)
-            print *,"removed", boundary(sizeof_boundary,:)
+            ! print *,"removed", boundary(sizeof_boundary,:)
             sizeof_boundary = sizeof_boundary - 1;
             ! EXIT
           END IF
@@ -277,16 +279,16 @@ CONTAINS
         boundary(sizeof_boundary,1)=iVer1;
         boundary(sizeof_boundary,2)=iVer2;
         boundary(sizeof_boundary,3)=Cell_%CNeigh(j+1);
-        print *,'Cell :', Cell_%index,' : ', Cell_%CNeigh(:)
-        print *,"added", boundary(sizeof_boundary,:)
+        ! print *,'Cell :', Cell_%index,' : ', Cell_%CNeigh(:)
+        ! print *,"added", boundary(sizeof_boundary,:)
         END IF
       END DO
     END DO
 
-    Do i=1,sizeof_Boundary
-      print *, i,"e bdry", boundary(i,:)
-    END DO
-    print *,boundary(:,3)
+    ! Do i=1,sizeof_Boundary
+      ! print *, i,"e bdry", boundary(i,:)
+    ! END DO
+    ! print *,boundary(:,3)
 
     NbZero = 0
     Do i=1,Sizeof_Boundary
@@ -305,7 +307,7 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(Mesh),                         INTENT(INOUT) :: Msh
-    INTEGER, DIMENSION(Msh%Nb_Cell),    INTENT(INOUT) :: cavity
+    INTEGER, DIMENSION(sizeof_boundary),    INTENT(INOUT) :: cavity
     INTEGER, DIMENSION(3*Sizeof_Cavity,3),INTENT(IN) :: boundary
     REAL(prec), DIMENSION(2),           INTENT(IN) :: Point
 
@@ -325,15 +327,15 @@ CONTAINS
     i = 0
     DO While (i .LT. sizeof_boundary)
       i = i +1
-      print *, boundary(i,1:2)
+      ! print *, boundary(i,1:2)
       iVer1 = boundary(i,1); iVer2 = boundary(i,2)
       Ver1 = Msh%Coord(iVer1,:); Ver2= Msh%Coord(iVer2,:)
 
 
       ! toutes les arrêtes (qui existent) dont le triangle généré n'est pas dégénéré
-      print *,Ver1,Ver2
+      ! print *,Ver1,Ver2
       DO while( ((boundary(i,1)==0 .OR. boundary(i,2)==0) .AND.  i<sizeof_boundary) .OR. abs(Signed_Surface(Ver1,Ver2,Point)) <eps0)
-        print *,"skip",i
+        ! print *,"skip",i
         i =i + 1;
         iVer1 = boundary(i,1); 
         iVer2 = boundary(i,2); 
@@ -397,21 +399,25 @@ CONTAINS
 
       Msh%Cells(iTri_add) = Tri
 
-      print *," addded new triangle : ", iTri_add
-      print *," de sommets : ",Tri%Sommets(:)
+      ! print *," addded new triangle : ", iTri_add
+      ! print *," de sommets : ",Tri%Sommets(:)
     END DO
 
-    print *,"size of boundary :",sizeof_boundary
+    ! print *,"size of boundary :",sizeof_boundary
     ! updating the neighbours of the star using a quadratic algorithm.
     DO i=1,sizeof_boundary
-      iTri = Cavity(i); Tri = Msh%Cells(iTri)
+      iTri = Cavity(i)
+      IF(iTri .NE. 0) THEN 
+      Tri = Msh%Cells(iTri)
       iVer1 = Tri%Sommets(1); 
       iVer2 = Tri%Sommets(2)
 
       ! or just stock it inside an array
       DO j=1,sizeof_boundary
 
-        jTri = cavity(j); Tri2 = Msh%Cells(jTri)
+        jTri = cavity(j); 
+        IF(jTri .NE. 0) THEN 
+        Tri2 = Msh%Cells(jTri)
 
         ! print *, Msh%Nb_Ver
         jVer1 = Tri2%Sommets(1)
@@ -426,14 +432,16 @@ CONTAINS
           if(jVer1 == iVer1 .OR. jVer2 == iVer2) STOP "ERROR TRIANGLE NOT DEF CORRECTLY \n"
           Msh%Cells(jTri) = Tri2
         END IF
+        END IF
 
       END DO
 
       CALL Out_Cell(Tri)
       
       Msh%Cells(iTri) = Tri
-      print *,"updated", iTri
-      print *,Tri%index," sommest :", Tri%Sommets
+      END IF
+      ! print *,"updated", iTri
+      ! print *,Tri%index," sommest :", Tri%Sommets
     END DO
 
   END SUBROUTINE Starring_Point
@@ -496,8 +504,9 @@ CONTAINS
     Nb_Edg  = Msh%Nb_Edg + sizeof_boundary - sizeof_cavity +1
 
     CALL REALLOC_Mesh(Msh, NbCellMax, Nb_Ver, Nb_Edg)
-
-
+    Msh%Nb_Cell = NbCellMax
+    Msh%Nb_Ver  = Nb_Ver
+    Msh%Nb_Edg  = Nb_Edg
 
     Msh%Nb_Cell = Msh%Nb_Cell -( sizeof_boundary - sizeof_cavity + security) - sizeof_Cavity
     Msh%max_neigh_Ver = max(Msh%max_neigh_Ver, sizeof_boundary)
@@ -506,6 +515,91 @@ CONTAINS
     print *, Msh%Nb_Cell, Sizeof_cavity
 
   END SUBROUTINE Realloc_Point
+
+
+  SUBROUTINE Mesh_Creation(Msh,Msh_D)
+    !--------------------------------------------
+    !
+    ! prends un maillage avec uniquement des noeuds et un bords
+    ! Calcul le maillage de Delaunay défini par cela
+    ! Si le maillage possède d'autres propriété, elles sont ignorée
+    !
+    !-------------------------------------------
+    IMPLICIT NONE
+    TYPE(Mesh), INTENT(INOUT) :: Msh
+    TYPE(Mesh) :: Msh_D
+    TYPE(Cell) :: Cell_, Cello
+    REAL(prec) :: epsi
+    INTEGER, DIMENSION(2) :: Edg
+    INTEGER :: i, iBdr, node
+    INTEGER :: Nb_Cellf,Nb_Edgf
+
+    INTEGER, DIMENSION(Msh%Nb_Cell) :: cavity
+    INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
+
+    ! Alloue une estimée du nombre de point/Cellules/Edges du maillage final
+    Nb_Cellf = 2*Msh%Nb_Ver; Nb_Edgf = 2*Msh%Nb_Ver
+    Msh_D%max_neigh_Cell=3
+    Msh_D%Nb_EBdr = 0; Msh_D%Nb_VBdr =0; Msh_D%max_neigh_Ver = 0
+    CALL ALLOCATE_Mesh(Msh_D,Nb_Ver = Msh%Nb_Ver +4 ,Nb_Cell = Nb_Cellf, Nb_Edg= Nb_Edgf)
+
+    Msh_D%Cells(:) = Void_Cell
+    ! crée 4 points en plus  qui seront la boite du maillage (+ epsilon )(!= eps0)
+    ! ils seront enlevée du maillage final
+    Msh_D%Nb_Ver = 4;
+
+    epsi = 0.1_prec
+
+    Msh_D%Coord(1,:) = (/Msh%x_deb -epsi, Msh%y_deb -epsi /)
+    Msh_D%Coord(2,:) = (/Msh%x_deb -epsi, Msh%y_fin +epsi /)
+    Msh_D%Coord(3,:) = (/Msh%x_fin +epsi, Msh%y_deb -epsi /)
+    Msh_D%Coord(4,:) = (/Msh%x_fin +epsi, Msh%y_fin +epsi /)
+
+    print *, Msh%x_deb, Msh%y_deb
+    print *, Msh%x_fin, Msh%y_fin
+    
+
+    ALLOCATE(Cell_%Sommets(3), Cell_%CNeigh(3), Cell_%Cell2Edg(3))
+    ALLOCATE(Cello%Sommets(3), Cello%CNeigh(3), Cello%Cell2Edg(3))
+
+    Cell_%index = 1                   ; Cello%index = 2
+    Cell_%NbSom = 3                   ; Cello%NbSom = 3
+    Cell_%Sommets(1) = 3              ; Cello%Sommets(1) = 2
+    Cell_%Sommets(2) = 2              ; Cello%Sommets(2) = 3
+    Cell_%Sommets(3) = 1              ; Cello%Sommets(3) = 4
+    Cell_%Surface = 0                 ; Cello%Surface = 0
+    Cell_%CRef = 1                    ; Cello%CRef = 1  
+    Cell_%CNeigh(:) = (/0,0,2/)       ; Cello%CNeigh(:) = (/0,0,1/)
+    
+    Msh_D%Cells(1) = Cell_             
+    Msh_D%Cells(2) = Cello
+    Msh_D%Nb_Cell =2
+
+
+
+    ! Ajoute tout les points du bord
+    DO i=1,Msh%Nb_VBdr
+      sizeof_cavity=0; sizeof_boundary =0;
+      CALL digging_a_hole(Msh_D,Msh%Coord(i,:), cavity);
+
+      if(sizeof_cavity == 0) STOP "ERROR : point already there \n"
+      CALL deleting_cavity(Msh_D,cavity)
+
+      ALLOCATE(boundary(3*sizeof_cavity,3))
+      boundary = 0
+      CALL Boundary_hole(Msh_D, Cavity, boundary ) 
+      print *,"sizes :", sizeof_Cavity, sizeof_Boundary
+      print *,"cavity :", Cavity(1:sizeof_Cavity)
+      print *,"boundary:",boundary(1:sizeof_Boundary,3)
+      Msh_D%Coord(Msh_D%Nb_Ver,:) = Msh%Coord(i,:)
+
+      CALL Starring_Point(Msh_D,cavity,boundary,Msh%Coord(i,:))
+
+      Deallocate(boundary); Cavity =0
+    END DO
+
+
+  END SUBROUTINE Mesh_Creation
 
 END MODULE 
 
