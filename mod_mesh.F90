@@ -1,6 +1,6 @@
 MODULE mod_mesh
 
-    use mod_Delaunay
+    use mod_divers
     IMPLICIT NONE
     
 
@@ -384,15 +384,18 @@ MODULE mod_mesh
         IF(ALLOCATED(Msh%EdgNeigh)) DEALLOCATE(Msh%EdgNeigh)
         IF(ALLOCATED(Msh%EIsOnBdr)) DEALLOCATE(Msh%EIsOnBdr)
         IF(ALLOCATED(Msh%VIsOnBDr)) DEALLOCATE(Msh%VIsOnBdr)
+        IF(ALLOCATED(Msh%LstObj))   DEALLOCATE(Msh%LstObj)
+        IF(ALLOCATED(Msh%Head))     DEALLOCATE(Msh%Head)
 
         ALLOCATE(Msh%LstObj  (Msh%Nb_Edg+1,5),   Msh%Edg     (Msh%Nb_Edg,2), Msh%EdgNeigh(Msh%Nb_Edg,2), Msh%Head(Msh%SizHead+1))
         ALLOCATE(Msh%EIsOnBdr(Msh%Nb_Edg),       Msh%VIsOnBdr(Msh%Nb_Ver))
 
 
-        Msh%Head = 0;   Msh%EdgNeigh = 0; Msh%LstObj = 0;
+        Msh%Head = 0;   Msh%EdgNeigh = 0; Msh%LstObj = 0;   Msh%NbNeigh = 0
 
         print *, "Calculating neighbors"
         DO i = 1, Msh%Nb_Cell;   
+            ! print *,i
             iTri = Msh%Cells(i)
             DO iEdg = 0, 2
 
@@ -429,7 +432,8 @@ MODULE mod_mesh
         Msh%EIsOnBdr = Msh%LstObj(:,4) == 0
         Msh%Nb_EBdr = COUNT(Msh%EIsOnBdr)
         
-        Msh%max_neigh_Ver = maxval(Msh%NbNeigh)
+        ! print *, Msh%Nb_Ver, Msh%NbNeigh(1:Msh%Nb_Ver)
+        Msh%max_neigh_Ver = maxval(Msh%NbNeigh(1:Msh%Nb_Ver))
         print *, "Maximum number of neighbors for a vertex:", Msh%max_neigh_Ver
 
         ! print *,Msh%Bdr

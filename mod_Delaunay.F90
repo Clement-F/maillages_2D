@@ -2,7 +2,7 @@
 
 MODULE Mod_Delaunay
 
-    use mod_divers
+    use mod_mesh
 
     IMPLICIT NONE
 
@@ -126,7 +126,7 @@ CONTAINS
       IF(iTri .NE. 0) THEN 
         CALL Out_Cell(Tri)
 
-        print *, Msh%Coord(Tri%Sommets(:),:)
+        ! print *, Msh%Coord(Tri%Sommets(:),:)
 
         Mrk(iTri) = Mrk(0)+1
         Coord_bary = Coord_Bary_FromTri(Tri, Msh, Point)
@@ -135,14 +135,15 @@ CONTAINS
 
         IF(all(Coord_bary .GT. eps0) )  THEN; Compass_check = .TRUE.; inTri = .True.;  EXIT; END IF;
 
-        IF(abs(Coord_bary(1)) .LT. eps0 .AND. (Coord_bary(2) .GT. eps0 .AND. Coord_bary(3) .GT. eps0)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(1); ENDIF
-        IF(abs(Coord_bary(2)) .LT. eps0 .AND. (Coord_bary(3) .GT. eps0 .AND. Coord_bary(1) .GT. eps0)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(2); ENDIF
-        IF(abs(Coord_bary(3)) .LT. eps0 .AND. (Coord_bary(1) .GT. eps0 .AND. Coord_bary(2) .GT. eps0)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(3); ENDIF
+        IF(abs(Coord_bary(1)) .LT. eps0 .AND. (Coord_bary(2) .GT. 0._prec .AND. Coord_bary(3) .GT. 0._prec)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(1); ENDIF
+        IF(abs(Coord_bary(2)) .LT. eps0 .AND. (Coord_bary(3) .GT. 0._prec .AND. Coord_bary(1) .GT. 0._prec)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(2); ENDIF
+        IF(abs(Coord_bary(3)) .LT. eps0 .AND. (Coord_bary(1) .GT. 0._prec .AND. Coord_bary(2) .GT. 0._prec)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(3); ENDIF
 
+        print *, Coord_bary
         print *, Coord_bary .LT. -eps0
-        IF(Coord_bary(1) .LT. -eps0 .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(1); ENDIF; 
-        IF(Coord_bary(2) .LT. -eps0 .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(2); ENDIF; 
-        IF(Coord_bary(3) .LT. -eps0 .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(3); ENDIF; 
+        IF(Coord_bary(1) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(1); ENDIF; 
+        IF(Coord_bary(2) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(2); ENDIF; 
+        IF(Coord_bary(3) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(3); ENDIF; 
 
       END IF
       ! print *,"a ",iTri
@@ -151,6 +152,8 @@ CONTAINS
     ! print *, "found in :", iTri
 
     Localise_Tri = 0
+    IF(OnEdg) inTri = .True.
+
     IF(inTri) THEN; Localise_Tri(1) = 1; Localise_Tri(2) = iTri; ENDIF
     IF(OnEdg) THEN; Localise_Tri(3) = 1; Localise_Tri(4) = eTri; ENDIF
       
@@ -534,11 +537,12 @@ CONTAINS
     INTEGER :: i, iBdr, node
     INTEGER :: Nb_Cellf,Nb_Edgf
 
-    INTEGER, DIMENSION(Msh%Nb_Cell) :: cavity
-    INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
+    ! INTEGER, DIMENSION(Msh%Nb_Cell) :: cavity
+    ! INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
 
     ! Alloue une estimée du nombre de point/Cellules/Edges du maillage final
-    Nb_Cellf = 2*Msh%Nb_Ver; Nb_Edgf = 2*Msh%Nb_Ver
+    Nb_Cellf = 4*Msh%Nb_Ver; Nb_Edgf = 4*Msh%Nb_Ver
+
     Msh_D%max_neigh_Cell=3
     Msh_D%Nb_EBdr = 0; Msh_D%Nb_VBdr =0; Msh_D%max_neigh_Ver = 0
     CALL ALLOCATE_Mesh(Msh_D,Nb_Ver = Msh%Nb_Ver +4 ,Nb_Cell = Nb_Cellf, Nb_Edg= Nb_Edgf)
@@ -574,29 +578,26 @@ CONTAINS
     Msh_D%Cells(1) = Cell_             
     Msh_D%Cells(2) = Cello
     Msh_D%Nb_Cell =2
-
-
+    Msh_D%NbNeigh = 0
 
     ! Ajoute tout les points du bord
-    DO i=1,Msh%Nb_VBdr
-      sizeof_cavity=0; sizeof_boundary =0;
-      CALL digging_a_hole(Msh_D,Msh%Coord(i,:), cavity);
+    print *,"Nb Ver :", Msh_D%Nb_Ver
+    CALL msh_neighbors_Tri(Msh_D)
 
-      if(sizeof_cavity == 0) STOP "ERROR : point already there \n"
-      CALL deleting_cavity(Msh_D,cavity)
-
-      ALLOCATE(boundary(3*sizeof_cavity,3))
-      boundary = 0
-      CALL Boundary_hole(Msh_D, Cavity, boundary ) 
-      print *,"sizes :", sizeof_Cavity, sizeof_Boundary
-      print *,"cavity :", Cavity(1:sizeof_Cavity)
-      print *,"boundary:",boundary(1:sizeof_Boundary,3)
-      Msh_D%Coord(Msh_D%Nb_Ver,:) = Msh%Coord(i,:)
-
-      CALL Starring_Point(Msh_D,cavity,boundary,Msh%Coord(i,:))
-
-      Deallocate(boundary); Cavity =0
+    DO i=1,Msh%Nb_Ver
+      write(*,fmt='("======================= adding ",i3,"e Point =================")') i
+      CALL add_Point(Msh_D, Msh%Coord(i,:))
+      CALL msh_neighbors_Tri(Msh_D)
     END DO
+
+    ! Remove the first 4 vertex and cells connected to them
+    ! DO i=1,Msh%Nb_Cell
+    !   Cell_ = Msh%Cells(i)
+    !   IF(any(Cell_%Sommets(:) <= 4 )) THEN 
+    !     CALL Cell_Delete(i,Msh)
+    !   END IF
+    ! END DO
+
 
 
   END SUBROUTINE Mesh_Creation

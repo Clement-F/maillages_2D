@@ -99,7 +99,6 @@ CONTAINS
 
     END FUNCTION Coord_Bary
 
-
     FUNCTION Coord_Bary_FromTri(iTri,Msh,P)  ! Calcul les coordonnées barycentriques du point P dans le triangle ABC
         IMPLICIT NONE
         TYPE(Cell) :: iTri
@@ -117,7 +116,6 @@ CONTAINS
         Coord_Bary_FromTri(3) = Signed_Surface(A,B,P)/Signed_Surface(A,B,C)
 
     END FUNCTION Coord_Bary_FromTri
-
 
     FUNCTION Is_inside_triangle(A,B,C,P)        ! Check if the point P is inside the triangle ABC
         IMPLICIT NONE
@@ -472,7 +470,16 @@ CONTAINS
                 IF(Cell_Neigh%CNeigh(k) == iCell ) Msh%Cells(iCell_Neigh)%CNeigh(k) = 0 ! Removing from the list of neighbours
                 END DO
             END IF
+
+            ! Considération des vertex
+
         END DO
+
+        ! ReOrder the Cells list
+        ! Msh%Cells(iCell) = Msh%Cells(Msh%Nb_Cell)
+        ! Msh%Nb_Cell = Msh%Nb_Cell -1
+
+
 
     END SUBROUTINE Cell_Delete
 
@@ -543,11 +550,26 @@ CONTAINS
 
     END SUBROUTINE
 
+    SUBROUTINE DEALLOCATE_Mesh(Msh)
+        IMPLICIT NONE
+        TYPE(Mesh), INTENT(INOUT) :: Msh
+
+        DEALLOCATE(Msh%Cells)
+        DEALLOCATE(Msh%VRef,  Msh%NbNeigh,  Msh%Coord, Msh%VNeigh)
+        DEALLOCATE(Msh%Ver2Cell)
+        DEALLOCATE(Msh%Edg,     Msh%EdgNeigh)
+        DEALLOCATE(Msh%Bdr,       Msh%VBdr,   Msh%VIsOnBdr,   Msh%EIsOnBdr) 
+
+    END SUBROUTINE DEALLOCATE_Mesh
+
     SUBROUTINE Copy_Mesh(Msh,Msh_Cpy)
         TYPE(Mesh), INTENT(IN) :: Msh
-        TYPE(Mesh), INTENT(OUT):: Msh_Cpy
+        TYPE(Mesh), INTENT(INOUT):: Msh_Cpy
         TYPE(Cell) :: nCell
         INTEGER :: n
+
+        IF(ALLOCATED(Msh_Cpy%Cells)) CALL DEALLOCATE_Mesh(Msh_Cpy)
+        IF(ALLOCATED(Msh_Cpy%Coord)) CALL DEALLOCATE_Mesh(Msh_Cpy)
 
         ! Mesh
         Msh_Cpy%DIM     = Msh%DIM

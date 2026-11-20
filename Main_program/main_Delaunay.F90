@@ -8,14 +8,14 @@ Program main
     Msh%max_neigh_Cell=3
 
     print *, "Reading mesh file..."
-    CALL ReadMesh("Meshes/carre_base.mesh",Msh)
+    CALL ReadMesh("Meshes/carre_test.mesh",Msh)
     print *, "Mesh file read successfully."
  
 
 
     ! CALL REALLOC_Mesh(Msh, 16, 13, 29)
-
-    CALL Mesh_Creation(Msh,Msh_del)
+    CALL add_Point(Msh, (/0.1_prec,0.1_prec/))
+    ! CALL Mesh_Creation(Msh,Msh_del)
 
     print *, "Writing mesh file..."
     CALL Write_vtk("carre_out.vtk",Msh_del)
