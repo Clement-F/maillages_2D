@@ -124,7 +124,7 @@ CONTAINS
 
       Tri = Msh%Cells(iTri)
       IF(iTri .NE. 0) THEN 
-        CALL Out_Cell(Tri)
+        ! CALL Out_Cell(Tri)
 
         ! print *, Msh%Coord(Tri%Sommets(:),:)
 
@@ -139,8 +139,8 @@ CONTAINS
         IF(abs(Coord_bary(2)) .LT. eps0 .AND. (Coord_bary(3) .GT. 0._prec .AND. Coord_bary(1) .GT. 0._prec)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(2); ENDIF
         IF(abs(Coord_bary(3)) .LT. eps0 .AND. (Coord_bary(1) .GT. 0._prec .AND. Coord_bary(2) .GT. 0._prec)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(3); ENDIF
 
-        print *, Coord_bary
-        print *, Coord_bary .LT. -eps0
+        ! print *, Coord_bary
+        ! print *, Coord_bary .LT. -eps0
         IF(Coord_bary(1) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(1); ENDIF; 
         IF(Coord_bary(2) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(2); ENDIF; 
         IF(Coord_bary(3) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(3); ENDIF; 
@@ -322,9 +322,9 @@ CONTAINS
     INTEGER :: i,j,k,n
 
 
-    print *,"---------------------------------"
-    print *,'         starring                '
-    print *,"---------------------------------"
+    ! print *,"---------------------------------"
+    ! print *,'         starring                '
+    ! print *,"---------------------------------"
 
     ! starring the point to the cavity's boundary
     i = 0
@@ -439,7 +439,7 @@ CONTAINS
 
       END DO
 
-      CALL Out_Cell(Tri)
+      ! CALL Out_Cell(Tri)
       
       Msh%Cells(iTri) = Tri
       END IF
@@ -474,7 +474,6 @@ CONTAINS
     CALL digging_a_hole(Msh,Point, cavity);
 
     if(sizeof_cavity == 0) STOP "ERROR : point already there \n"
-    CALL deleting_cavity(Msh,cavity)
 
     ALLOCATE(boundary(3*sizeof_cavity,3))
     boundary = 0
@@ -483,6 +482,7 @@ CONTAINS
     print *,"cavity :", Cavity(1:sizeof_Cavity)
     print *,"boundary:",boundary(1:sizeof_Boundary,3)
     CALL Realloc_Point(Msh)
+    CALL deleting_cavity(Msh,cavity)
     Msh%Coord(Msh%Nb_Ver,:) = Point
 
     CALL Starring_Point(Msh,cavity,boundary,Point)
@@ -502,16 +502,16 @@ CONTAINS
 
     ! Msh_cpy = Msh
     security = 0
-    NbCellMax= Msh%Nb_Cell + sizeof_boundary - sizeof_cavity + security
+    NbCellMax= Msh%Nb_Cell + sizeof_boundary + security
     Nb_Ver  = Msh%Nb_Ver +1
-    Nb_Edg  = Msh%Nb_Edg + sizeof_boundary - sizeof_cavity +1
+    Nb_Edg  = Msh%Nb_Edg + sizeof_boundary  +1
 
     CALL REALLOC_Mesh(Msh, NbCellMax, Nb_Ver, Nb_Edg)
     Msh%Nb_Cell = NbCellMax
     Msh%Nb_Ver  = Nb_Ver
     Msh%Nb_Edg  = Nb_Edg
 
-    Msh%Nb_Cell = Msh%Nb_Cell -( sizeof_boundary - sizeof_cavity + security) - sizeof_Cavity
+    Msh%Nb_Cell = Msh%Nb_Cell -( sizeof_boundary  + security) 
     Msh%max_neigh_Ver = max(Msh%max_neigh_Ver, sizeof_boundary)
 
     print *, 'realloc cells to', NbCellMax
@@ -585,18 +585,26 @@ CONTAINS
     CALL msh_neighbors_Tri(Msh_D)
 
     DO i=1,Msh%Nb_Ver
-      write(*,fmt='("======================= adding ",i3,"e Point =================")') i
+      ! write(*,fmt='("======================= adding ",i3,"e Point =================")') i
       CALL add_Point(Msh_D, Msh%Coord(i,:))
       CALL msh_neighbors_Tri(Msh_D)
     END DO
 
     ! Remove the first 4 vertex and cells connected to them
-    ! DO i=1,Msh%Nb_Cell
-    !   Cell_ = Msh%Cells(i)
-    !   IF(any(Cell_%Sommets(:) <= 4 )) THEN 
-    !     CALL Cell_Delete(i,Msh)
-    !   END IF
-    ! END DO
+    print *, Msh_D%Nb_Cell
+    
+    DO i=1,Msh_d%Nb_Cell
+      Cell_ = Msh_d%Cells(i)
+      IF(any(Cell_%Sommets(:) <= 4 )) THEN 
+        ! CALL Cell_Delete(i,Msh_D)
+        Cell_ = Void_Cell
+        Msh_d%Cells(i) = Void_Cell
+      END IF
+    END DO
+
+    print *, Msh_D%Nb_Cell
+    
+
 
 
 

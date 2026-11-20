@@ -476,8 +476,8 @@ CONTAINS
         END DO
 
         ! ReOrder the Cells list
-        ! Msh%Cells(iCell) = Msh%Cells(Msh%Nb_Cell)
-        ! Msh%Nb_Cell = Msh%Nb_Cell -1
+        Msh%Cells(iCell) = Msh%Cells(Msh%Nb_Cell)
+        Msh%Nb_Cell = Msh%Nb_Cell -1
 
 
 
@@ -493,8 +493,8 @@ CONTAINS
         INTEGER :: mCell, mVer, mEdg
         INTEGER :: n
 
-        print *,"before after       :",Msh%Nb_Cell,"Cells, ",Msh%Nb_Ver,"Vertex",Msh%Nb_Edg,"Edges"
-        Print *,"Realloc mesh under :", Nb_Cell,"Cells, ",Nb_Ver,"Vertex", Nb_Edg,"Edges"
+        ! print *,"before after       :",Msh%Nb_Cell,"Cells, ",Msh%Nb_Ver,"Vertex",Msh%Nb_Edg,"Edges"
+        ! Print *,"Realloc mesh under :", Nb_Cell,"Cells, ",Nb_Ver,"Vertex", Nb_Edg,"Edges"
 
         CALL Copy_Mesh(Msh,Msh_Cpy)
 
