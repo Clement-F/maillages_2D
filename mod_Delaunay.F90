@@ -117,7 +117,7 @@ CONTAINS
       ! traitement des boucles ou des maillages non connexes
 
       DO WHILE(Mrk(iTri) == Mrk(0) +1 .OR. iTri == 0)
-        ! print *,"skip",iTri
+        print *,"skip",iTri
         iTri = edge_case
         edge_case = edge_case +1
       END DO 
@@ -407,9 +407,6 @@ CONTAINS
       Msh%Nb_Cell = Msh%Nb_Cell +1 
 
       Msh%Cells(iTri_add) = Tri
-
-      ! print *," addded new triangle : ", iTri_add
-      ! print *," de sommets : ",Tri%Sommets(:)
     END DO
 
     ! print *,"size of boundary :",sizeof_boundary
@@ -482,9 +479,11 @@ CONTAINS
     ALLOCATE(boundary(3*sizeof_cavity,3))
     boundary = 0
     CALL Boundary_hole(Msh, Cavity, boundary ) 
+    
     ! print *,"sizes :", sizeof_Cavity, sizeof_Boundary
     ! print *,"cavity :", Cavity(1:sizeof_Cavity)
     ! print *,"boundary:",boundary(1:sizeof_Boundary,3)
+
     CALL Realloc_Point(Msh)
     CALL deleting_cavity(Msh,cavity)
     Msh%Coord(Msh%Nb_Ver,:) = Point
@@ -511,11 +510,8 @@ CONTAINS
     Nb_Edg  = Msh%Nb_Edg + sizeof_boundary  +1
 
     CALL REALLOC_Mesh(Msh, NbCellMax, Nb_Ver, Nb_Edg)
-    Msh%Nb_Cell = NbCellMax
     Msh%Nb_Ver  = Nb_Ver
     Msh%Nb_Edg  = Nb_Edg
-
-    Msh%Nb_Cell = Msh%Nb_Cell -( sizeof_boundary  + security) 
     Msh%max_neigh_Ver = max(Msh%max_neigh_Ver, sizeof_boundary)
 
     ! print *, 'realloc cells to', NbCellMax
@@ -536,17 +532,21 @@ CONTAINS
     TYPE(Mesh) :: Msh_D
     TYPE(Cell) :: Cell_, Cello
     REAL(prec) :: epsi
+    REAL(prec), DIMENSION(2) :: Point
+
     INTEGER, DIMENSION(2) :: Edg
     INTEGER :: iVer1,iVer2, i_Edg_d
     INTEGER :: i, iBdr, node
     INTEGER :: Nb_Cellf,Nb_Edgf
     INTEGER :: Color_suppr
+    INTEGER :: Nb_Cell, Nb_Ver, Nb_Edg, security, NbCellMax
 
-    ! INTEGER, DIMENSION(Msh%Nb_Cell) :: cavity
-    ! INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
+    INTEGER, DIMENSION(40) :: cavity
+    INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
 
     ! Alloue une estimée du nombre de point/Cellules/Edges du maillage final
-    Nb_Cellf = 4*Msh%Nb_Ver; Nb_Edgf = 4*Msh%Nb_Ver
+    Nb_Cellf = 8*Msh%Nb_Ver 
+    Nb_Edgf  = 8*Msh%Nb_Ver
 
     Msh_D%max_neigh_Cell=3
     Msh_D%Nb_EBdr = 0; Msh_D%Nb_VBdr =0; Msh_D%max_neigh_Ver = 0
@@ -590,16 +590,15 @@ CONTAINS
     CALL msh_neighbors_Tri(Msh_D)
 
     DO i=1,Msh%Nb_Ver
-      write(*,fmt='("======================= adding ",i3,"e Point ", f8.3,f8.3," =================")') i, Msh%Coord(i,:)
+      Point = Msh%Coord(i,:)
+      write(*,fmt='("======================= adding ",i5,"e Point ", f8.3,f8.3," =================")') i, Msh%Coord(i,:)
       CALL add_Point(Msh_D, Msh%Coord(i,:))
-      CALL msh_neighbors_Tri(Msh_D)
-
-      Call Write_vtk("carre_last_.vtk", Msh_d)
-      ! IF(i== 27) STOP
     END DO
 
+    CALL msh_neighbors_Tri(Msh_D)
+
+
     ! Remove the first 4 vertex and cells connected to them
-    print *, Msh_D%Nb_Cell
     
     ! TODO : ADD enforce boundary
 
@@ -608,32 +607,31 @@ CONTAINS
     DO i=1,Msh%Nb_Edg
       Edg = Msh%Edg(i,:)
       i_Edg_d = Hash_find(Edg(1)+4,Edg(2)+4, Msh_D)
-      IF(i_Edg_d == 0) STOP  'edge not found, Mesh Creation'
-      Msh_d%EIsOnBdr(i_Edg_d) = Msh%EIsOnBdr(i)
-      ! print *,Edg+4, Msh_d%EIsOnBdr(i_Edg_d)
+      IF(i_Edg_d == 0) THEN;  print *,'edge not found, Mesh Creation', Edg;
+      else;Msh_d%EIsOnBdr(i_Edg_d) = Msh%EIsOnBdr(i)
+      END IF
     END DO
 
     CALL Connex_Comp(Msh_D)
+    Msh_d%Cells(:)%Cref = Msh_d%Cells(:)%color
+    CALL Write_vtk("carre_full.vtk",Msh_d)
+    Call WriteMesh("carre_full.mesh",Msh_d)
 
     i = hash_find(1,2,Msh_D)
     i = Msh_D%LstObj(i,3)
     Color_suppr = Msh_D%Cells(i)%Color
 
-    print *, Color_suppr
     Write(*, '("There is ",i2," Connex Component")') maxval(Msh_D%Cells%Color)
-
-    Msh_d%Cells(:)%cref = Msh_d%Cells(:)%color
-    Call WriteMesh("carre_last_.mesh", Msh_d)
 
     DO i=1,Msh_d%Nb_Cell
       Cell_ = Msh_d%Cells(i)
-      ! print *,Cell_%color
       IF( Cell_%color == Color_Suppr) THEN 
         CALL Cell_Delete(i,Msh_D)
-        ! Cell_ = Void_Cell
-        ! Msh_d%Cells(i) = Void_Cell
       END IF
     END DO
+
+    CALL REALLOC_Mesh(Msh_D, Msh_D%Nb_Cell, Msh_D%Nb_Ver, Msh_D%Nb_Edg)
+    CALL msh_neighbors_Tri(Msh_D)
 
     print *, Msh_D%Nb_Cell
     
@@ -670,9 +668,6 @@ CONTAINS
       DO WHILE(iCell .NE. 0 .AND. nbr_influence .GT. 0)
         
         iCell = influence_ring(nbr_influence)
-        ! print *,iCell, Color, Msh%Cells(iCell)%CNeigh(:)
-        ! print *,influence_ring(1:Nbr_influence)
-        ! print *, "---------------------------"
         Cell_ = Msh%Cells(iCell)
         ! if the element isn't colored, color it and add it's valid edges
 
@@ -684,12 +679,10 @@ CONTAINS
           ! an edge is valid if the edge isn't a border and the neighboring triangle isn't colored
           ! and it is not in the pile
           isvalid = valid_edge(Msh,Cell_,i_edg)
-          ! print *, isvalid
           if(isvalid .AND. .NOT. any(influence_ring(1:Nbr_influence-1) == Cell_%CNeigh(i_edg))) THEN
             ! if the edge is valid, add on top of the pile
             influence_ring(nbr_influence) = Cell_%CNeigh(i_edg)
             nbr_influence = nbr_influence + 1;
-            ! print *,"added ", Cell_%CNeigh(i_edg)
           END IF
         END DO
         nbr_colored = nbr_colored + 1;
@@ -705,14 +698,10 @@ CONTAINS
       END DO
       Color = Color + 1
       id_last_seed = 0
-      ! print *, Msh%Cells(1:Msh%Nb_Cell)%Color
       DO iCell = 1,Msh%Nb_Cell
         IF(Msh%Cells(iCell)%Color ==0 ) THEN; id_last_seed = iCell; EXIT; END IF
       END DO
       IF(id_last_seed == 0) EXIT
-      ! print *,id_last_seed
-
-      ! IF(Color == 4) STOP
     END DO
 
   END SUBROUTINE Connex_Comp

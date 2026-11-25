@@ -297,6 +297,7 @@ CONTAINS
                 print *, "Processed ",iTri," Numbers of Cells out of ", Msh%Nb_Cell
                 STOP
             END IF
+
             key = iVer1 + iVer2
             Msh%NbrObj = Msh%NbrObj + 1
             Msh%LstObj(Msh%NbrObj,1) = iVer1
@@ -466,17 +467,20 @@ CONTAINS
             iCell_Neigh = Msh%Cells(iCell)%CNeigh(j); 
             IF(iCell_Neigh .NE. 0) THEN 
                 Cell_Neigh  = Msh%Cells(iCell_Neigh)
-                DO k=1,3
-                IF(Cell_Neigh%CNeigh(k) == iCell ) Msh%Cells(iCell_Neigh)%CNeigh(k) = 0 ! Removing from the list of neighbours
-                END DO
+                ! DO k=1,3
+                ! IF(Cell_Neigh%CNeigh(k) == iCell ) Msh%Cells(iCell_Neigh)%CNeigh(k) = 0 ! Removing from the list of neighbours
+                ! END DO
             END IF
 
             ! Considération des vertex
-
         END DO
+
+        Msh%Cells(iCell)%Sommets = 0;
+        Msh%Cells(iCell)%NbSom   = 0
 
         ! ReOrder the Cells list
         Msh%Cells(iCell) = Msh%Cells(Msh%Nb_Cell)
+        Msh%Cells(iCell)%index = iCell
         Msh%Nb_Cell = Msh%Nb_Cell -1
 
 
@@ -490,7 +494,7 @@ CONTAINS
         INTEGER, INTENT(IN) :: Nb_Cell, Nb_Ver, Nb_Edg
         TYPE(Mesh) :: Msh_Cpy
         TYPE(Cell) :: nCell
-        INTEGER :: mCell, mVer, mEdg
+        INTEGER :: mCell, mVer, mEdg, mVNeigh
         INTEGER :: n
 
         ! print *,"before after       :",Msh%Nb_Cell,"Cells, ",Msh%Nb_Ver,"Vertex",Msh%Nb_Edg,"Edges"
@@ -501,6 +505,7 @@ CONTAINS
         mCell = min(Nb_Cell, Msh%Nb_Cell)
         mVer  = min(Nb_Ver , Msh%Nb_Ver )
         mEdg  = min(Nb_Edg , Msh%Nb_Edg )
+        mVNeigh=min(Msh%max_neigh_Ver,Size(Msh_Cpy%VNeigh(1,:)))
         ! Msh%Nb_Cell = Nb_Cell; 
         ! Msh%Nb_Ver = Nb_Ver; 
         ! Msh%Nb_Edg = Nb_Edg
@@ -525,10 +530,11 @@ CONTAINS
         ALLOCATE(Msh%VRef(Nb_Ver),  Msh%NbNeigh(Nb_Ver),  Msh%Coord(Nb_Ver,2), Msh%VNeigh(Nb_Ver,Msh%max_neigh_Ver))
         ALLOCATE(Msh%Ver2Cell(Nb_Ver,Msh%max_neigh_Ver))
         Msh%VRef(1:mVer) = Msh_Cpy%VRef(1:mVer);                    Msh%NbNeigh(1:mVer)=  Msh_Cpy%NbNeigh(1:mVer);      Msh%Coord(1:mVer,:) = Msh_Cpy%Coord(1:mVer,:)
-        Msh%VNeigh(1:mVer,:) = Msh_Cpy%VNeigh(1:mVer,:);            Msh%Ver2Cell(1:mVer,:) = Msh_Cpy%Ver2Cell(1:mVer,:)
+
+        Msh%VNeigh(1:mVer,1:mVNeigh) =  Msh_Cpy%VNeigh(1:mVer,1:mVNeigh);            
+        Msh%Ver2Cell(1:mVer,1:mVNeigh) = Msh_Cpy%Ver2Cell(1:mVer,1:mVNeigh)
 
         ALLOCATE(Msh%Edg(Nb_Edg,2),     Msh%EdgNeigh(Nb_Edg,2))
-        Msh%Edg = 0
         Msh%Edg(1:mEdg,:) = Msh_Cpy%Edg(1:mEdg,:);                  Msh%EdgNeigh(1:mEdg,:) = Msh_Cpy%EdgNeigh(1:mEdg,:)
 
         ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
@@ -621,15 +627,15 @@ CONTAINS
         CHARACTER (len=63):: fmt_
         INTEGER :: i
 
-        write(*,fmt='("----------- cell ",i3," -----------")') inCell%index
+        write(*,fmt='("----------- cell ",i5," -----------")') inCell%index
         write(*,fmt='("Ref of Cell :", i3)') inCell%CRef
         write(*,fmt='("Nb of vertex:", i3)') inCell%NbSom
 
-        fmt_ = '("Sommets :"'//Repeat(",i4",inCell%NbSom)//")"
+        fmt_ = '("Sommets :"'// Repeat(',i5,";"',inCell%NbSom)//")"
         write(*,fmt=fmt_) inCell%Sommets(:)
-        fmt_ = '("Voisins :"'//Repeat(",i4",inCell%NbSom)//")"
+        fmt_ = '("Voisins :"'// Repeat(',i5,";"',inCell%NbSom)//")"
         write(*,fmt=fmt_) inCell%CNeigh(:)
-        fmt_ = '("Edges :"'//Repeat(",i4",inCell%NbSom)//")"
+        fmt_ = '("Edges   :"'// Repeat(',i5,";"',inCell%NbSom)//")"
         write(*,fmt=fmt_) inCell%Cell2Edg(:)
 
         write(*,fmt='("Centre :",f8.3,";",f8.3)') inCell%Center

@@ -397,8 +397,8 @@ MODULE mod_mesh
 
         print *, "Calculating neighbors"
         DO i = 1, Msh%Nb_Cell;   
-            ! print *,i
             iTri = Msh%Cells(i)
+            ! print *,iTri%index
             DO iEdg = 1, 3
 
                 iVer1 = iTri%Sommets(tri2edg(iEdg,1))

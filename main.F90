@@ -8,7 +8,7 @@ Program main
     Msh%max_neigh_Cell=3
 
     print *, "Reading mesh file..."
-    CALL ReadMesh("Meshes/ls89.mesh",Msh)
+    CALL ReadMesh("Meshes/nacaAdap.mesh",Msh)
     print *, "Mesh file read successfully."
  
     Call WriteMesh("carre_comp.mesh", Msh)
