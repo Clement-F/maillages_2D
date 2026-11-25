@@ -8,9 +8,11 @@ Program main
     Msh%max_neigh_Cell=3
 
     print *, "Reading mesh file..."
-    CALL ReadMesh("Meshes/carre_test.mesh",Msh)
+    CALL ReadMesh("Meshes/ls89.mesh",Msh)
     print *, "Mesh file read successfully."
  
+    Call WriteMesh("carre_comp.mesh", Msh)
+    CALL Write_vtk("carre_comp.vtk",Msh)
 
 
     ! CALL REALLOC_Mesh(Msh, 16, 13, 29)
@@ -21,7 +23,7 @@ Program main
     ! CALL Copy_Mesh(Msh_del,Msh)
 
     print *, "Writing mesh file..."
-    Call Write_vtk("carre_comp.vtk", Msh)
+    CALL WriteMesh("carre_out.mesh",Msh_del)
     CALL Write_vtk("carre_out.vtk",Msh_del)
     print *, "Mesh file written successfully."
 END program

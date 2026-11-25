@@ -9,6 +9,7 @@ module mod_Var
   TYPE Cell
   
     INTEGER :: index
+    INTEGER :: Color
     INTEGER :: cref                 ! Ref des mailles
     INTEGER :: NbSom               ! Nombre de voisins de chaque maille
     INTEGER, ALLOCATABLE, DIMENSION(:) :: Sommets, CNeigh   ! Sommets assignée aux mailles et voisins des mailles

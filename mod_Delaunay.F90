@@ -10,7 +10,7 @@ MODULE Mod_Delaunay
     INTEGER ::  sizeof_boundary =0; ! var global
 
 
-    INTEGER, DIMENSION(0:2,2), PARAMETER :: tri2edg = reshape([1,2, 2,3, 3,1], [3,2])
+    INTEGER, DIMENSION(3,2), PARAMETER :: tri2edg = reshape([2,3 , 1,3 , 1,2], [3,2])
 
 CONTAINS
 
@@ -125,15 +125,13 @@ CONTAINS
       Tri = Msh%Cells(iTri)
       IF(iTri .NE. 0) THEN 
         ! CALL Out_Cell(Tri)
-
-        ! print *, Msh%Coord(Tri%Sommets(:),:)
+        ! print *,Mrk(Tri%CNeigh)
 
         Mrk(iTri) = Mrk(0)+1
         Coord_bary = Coord_Bary_FromTri(Tri, Msh, Point)
 
         IF(all(Coord_bary .LT. -eps0) ) STOP "ERROR POINT OR TRIANGLE WRONGLY DEFINED"
 
-        IF(all(Coord_bary .GT. eps0) )  THEN; Compass_check = .TRUE.; inTri = .True.;  EXIT; END IF;
 
         IF(abs(Coord_bary(1)) .LT. eps0 .AND. (Coord_bary(2) .GT. 0._prec .AND. Coord_bary(3) .GT. 0._prec)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(1); ENDIF
         IF(abs(Coord_bary(2)) .LT. eps0 .AND. (Coord_bary(3) .GT. 0._prec .AND. Coord_bary(1) .GT. 0._prec)) THEN; Compass_check= .true.; onEdg = .true.; eTri = Tri%CNeigh(2); ENDIF
@@ -141,10 +139,16 @@ CONTAINS
 
         ! print *, Coord_bary
         ! print *, Coord_bary .LT. -eps0
+
         IF(Coord_bary(1) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(1); ENDIF; 
         IF(Coord_bary(2) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(2); ENDIF; 
         IF(Coord_bary(3) .LT. 0._prec .AND. .NOT. Compass_check) THEN; Compass_check= .true.;  iTri= Tri%CNeigh(3); ENDIF; 
 
+        IF(all(Coord_bary .GT. eps0) )  THEN; Compass_check = .TRUE.; inTri = .True.;  EXIT; END IF;
+
+        ! if(iTri == 0 .AND. Mrk(iTri) == Mrk(0)+1) THEN; edge_case = edge_case + 1; iTri = edge_case; END IF
+        
+        ! print *,"Itri",iTri
       END IF
       ! print *,"a ",iTri
     END DO
@@ -184,6 +188,8 @@ CONTAINS
     if(Loc_Tri(1) ==1) THEN;  pile(1) = Loc_Tri(2); sizeof_pile = sizeof_pile +1; END IF
     if(Loc_Tri(3) ==1) THEN;  pile(2) = Loc_Tri(4); sizeof_pile = sizeof_pile +1; END IF
 
+    ! print *,Point
+    ! print *, Loc_Tri
     DO WHILE(sizeof_pile .GT. 0)
       ! add the element to the cavity and remove it from the pile
       iTri = pile(sizeof_pile);   sizeof_pile   = sizeof_pile -1
@@ -252,7 +258,7 @@ CONTAINS
 
     DO i=1,Sizeof_Cavity
       ! print *, 'boundary size', sizeof_boundary
-      DO j=0,2
+      DO j=1,3
         Cell_ = Msh%Cells(cavity(i))
         iVer1 = Cell_%Sommets(Tri2Edg(j,1))
         iVer2 = Cell_%Sommets(Tri2Edg(j,2))
@@ -281,7 +287,7 @@ CONTAINS
         sizeof_boundary = sizeof_boundary + 1;
         boundary(sizeof_boundary,1)=iVer1;
         boundary(sizeof_boundary,2)=iVer2;
-        boundary(sizeof_boundary,3)=Cell_%CNeigh(j+1);
+        boundary(sizeof_boundary,3)=Cell_%CNeigh(j);
         ! print *,'Cell :', Cell_%index,' : ', Cell_%CNeigh(:)
         ! print *,"added", boundary(sizeof_boundary,:)
         END IF
@@ -386,13 +392,13 @@ CONTAINS
       ! print *,"bdry", iTri_Bdry
       Tri%CNeigh(3) =iTri_bdry;
       IF(iTri_Bdry .NE. 0) THEN;      
-      DO j=0,2
+      DO j=1,3
         Tri_bdry = Msh%Cells(iTri_bdry)
         jVer1 = Tri_bdry%Sommets(Tri2Edg(j,1))
         jVer2 = Tri_bdry%Sommets(Tri2Edg(j,2))
         if((iVer1==jVer1 .AND. iVer2 == jVer2) .OR. (iVer2 == jVer1 .AND. iVer1 == jVer2)) THEN
           ! print *,'bbbb',boundary(i,:)
-          Msh%Cells(iTri_bdry)%CNeigh(j+1)=iTri_add;
+          Msh%Cells(iTri_bdry)%CNeigh(j)=iTri_add;
         END IF
       END DO; 
       END IF
@@ -449,7 +455,6 @@ CONTAINS
 
   END SUBROUTINE Starring_Point
 
-
   SUBROUTINE add_Point(Msh, Point)
     !---------------------------------------------
     ! Ajoute un point au maillage msh aux coordonnées données
@@ -458,7 +463,6 @@ CONTAINS
     ! il est conseiller de recalculer les voisins après une ou plusieurs itération de cette routine
     ! il est cependant possible de réajouter un point sans avoir à recalculer les voisins.
     !
-    ! Présuppose que l'allocation mémoire a déjà été faite
     ! Présuppose que le point n'a pas déjà été ajouté
     ! Présuppose que le point à ajouté se trouve dans un triangle du maillage
     ! Présuppose que le maillage est triangulaire
@@ -478,9 +482,9 @@ CONTAINS
     ALLOCATE(boundary(3*sizeof_cavity,3))
     boundary = 0
     CALL Boundary_hole(Msh, Cavity, boundary ) 
-    print *,"sizes :", sizeof_Cavity, sizeof_Boundary
-    print *,"cavity :", Cavity(1:sizeof_Cavity)
-    print *,"boundary:",boundary(1:sizeof_Boundary,3)
+    ! print *,"sizes :", sizeof_Cavity, sizeof_Boundary
+    ! print *,"cavity :", Cavity(1:sizeof_Cavity)
+    ! print *,"boundary:",boundary(1:sizeof_Boundary,3)
     CALL Realloc_Point(Msh)
     CALL deleting_cavity(Msh,cavity)
     Msh%Coord(Msh%Nb_Ver,:) = Point
@@ -514,11 +518,10 @@ CONTAINS
     Msh%Nb_Cell = Msh%Nb_Cell -( sizeof_boundary  + security) 
     Msh%max_neigh_Ver = max(Msh%max_neigh_Ver, sizeof_boundary)
 
-    print *, 'realloc cells to', NbCellMax
-    print *, Msh%Nb_Cell, Sizeof_cavity
+    ! print *, 'realloc cells to', NbCellMax
+    ! print *, Msh%Nb_Cell, Sizeof_cavity
 
   END SUBROUTINE Realloc_Point
-
 
   SUBROUTINE Mesh_Creation(Msh,Msh_D)
     !--------------------------------------------
@@ -534,8 +537,10 @@ CONTAINS
     TYPE(Cell) :: Cell_, Cello
     REAL(prec) :: epsi
     INTEGER, DIMENSION(2) :: Edg
+    INTEGER :: iVer1,iVer2, i_Edg_d
     INTEGER :: i, iBdr, node
     INTEGER :: Nb_Cellf,Nb_Edgf
+    INTEGER :: Color_suppr
 
     ! INTEGER, DIMENSION(Msh%Nb_Cell) :: cavity
     ! INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
@@ -552,7 +557,7 @@ CONTAINS
     ! ils seront enlevée du maillage final
     Msh_D%Nb_Ver = 4;
 
-    epsi = 0.1_prec
+    epsi = 1._prec
 
     Msh_D%Coord(1,:) = (/Msh%x_deb -epsi, Msh%y_deb -epsi /)
     Msh_D%Coord(2,:) = (/Msh%x_deb -epsi, Msh%y_fin +epsi /)
@@ -585,20 +590,48 @@ CONTAINS
     CALL msh_neighbors_Tri(Msh_D)
 
     DO i=1,Msh%Nb_Ver
-      ! write(*,fmt='("======================= adding ",i3,"e Point =================")') i
+      write(*,fmt='("======================= adding ",i3,"e Point ", f8.3,f8.3," =================")') i, Msh%Coord(i,:)
       CALL add_Point(Msh_D, Msh%Coord(i,:))
       CALL msh_neighbors_Tri(Msh_D)
+
+      Call Write_vtk("carre_last_.vtk", Msh_d)
+      ! IF(i== 27) STOP
     END DO
 
     ! Remove the first 4 vertex and cells connected to them
     print *, Msh_D%Nb_Cell
     
+    ! TODO : ADD enforce boundary
+
+    ! inside edges are now also boundary 
+
+    DO i=1,Msh%Nb_Edg
+      Edg = Msh%Edg(i,:)
+      i_Edg_d = Hash_find(Edg(1)+4,Edg(2)+4, Msh_D)
+      IF(i_Edg_d == 0) STOP  'edge not found, Mesh Creation'
+      Msh_d%EIsOnBdr(i_Edg_d) = Msh%EIsOnBdr(i)
+      ! print *,Edg+4, Msh_d%EIsOnBdr(i_Edg_d)
+    END DO
+
+    CALL Connex_Comp(Msh_D)
+
+    i = hash_find(1,2,Msh_D)
+    i = Msh_D%LstObj(i,3)
+    Color_suppr = Msh_D%Cells(i)%Color
+
+    print *, Color_suppr
+    Write(*, '("There is ",i2," Connex Component")') maxval(Msh_D%Cells%Color)
+
+    Msh_d%Cells(:)%cref = Msh_d%Cells(:)%color
+    Call WriteMesh("carre_last_.mesh", Msh_d)
+
     DO i=1,Msh_d%Nb_Cell
       Cell_ = Msh_d%Cells(i)
-      IF(any(Cell_%Sommets(:) <= 4 )) THEN 
-        ! CALL Cell_Delete(i,Msh_D)
-        Cell_ = Void_Cell
-        Msh_d%Cells(i) = Void_Cell
+      ! print *,Cell_%color
+      IF( Cell_%color == Color_Suppr) THEN 
+        CALL Cell_Delete(i,Msh_D)
+        ! Cell_ = Void_Cell
+        ! Msh_d%Cells(i) = Void_Cell
       END IF
     END DO
 
@@ -610,5 +643,117 @@ CONTAINS
 
   END SUBROUTINE Mesh_Creation
 
-END MODULE 
+  SUBROUTINE Connex_Comp(Msh)
+    IMPLICIT NONE
+    TYPE(Mesh), INTENT(INOUT) :: Msh
+    TYPE(Cell) :: Cell_
+    INTEGER,    DIMENSION(Msh%Nb_Cell) :: influence_ring
+    INTEGER :: nbr_influence, nbr_colored, id_last_seed, color
+    INTEGER :: iCell, i_edg
+    LOGICAL :: isvalid
 
+    print *,"================== Coloring ====================="
+
+    Msh%Cells(:)%Color = 0    ! stored color of the triangles
+    influence_ring = 0        ! neighbohood of the seed, the pile
+    nbr_influence = 1         ! top of the pile 
+    nbr_colored   = 0         ! number of colored triangles
+    id_last_seed  = 1         ! last seed
+    color = 1                 ! color of the CC
+
+    DO WHILE(id_last_seed .LT. Msh%Nb_Cell)
+      ! INIT THE SEED
+      influence_ring(1)= id_last_seed;  nbr_influence =1;
+      iCell = id_last_seed
+
+      ! loop on the rings of neighbors  
+      DO WHILE(iCell .NE. 0 .AND. nbr_influence .GT. 0)
+        
+        iCell = influence_ring(nbr_influence)
+        ! print *,iCell, Color, Msh%Cells(iCell)%CNeigh(:)
+        ! print *,influence_ring(1:Nbr_influence)
+        ! print *, "---------------------------"
+        Cell_ = Msh%Cells(iCell)
+        ! if the element isn't colored, color it and add it's valid edges
+
+        if(Cell_%Color==0) THEN 
+      
+        Cell_%Color = color; 
+        DO i_Edg= 1,3
+        
+          ! an edge is valid if the edge isn't a border and the neighboring triangle isn't colored
+          ! and it is not in the pile
+          isvalid = valid_edge(Msh,Cell_,i_edg)
+          ! print *, isvalid
+          if(isvalid .AND. .NOT. any(influence_ring(1:Nbr_influence-1) == Cell_%CNeigh(i_edg))) THEN
+            ! if the edge is valid, add on top of the pile
+            influence_ring(nbr_influence) = Cell_%CNeigh(i_edg)
+            nbr_influence = nbr_influence + 1;
+            ! print *,"added ", Cell_%CNeigh(i_edg)
+          END IF
+        END DO
+        nbr_colored = nbr_colored + 1;
+        nbr_influence = nbr_influence - 1;
+        Msh%Cells(iCell) = Cell_
+        ! if the element is colored, skip to the next element
+        ! the pile is one less high.
+
+        else;  nbr_influence = nbr_influence - 1;
+
+        END IF
+
+      END DO
+      Color = Color + 1
+      id_last_seed = 0
+      ! print *, Msh%Cells(1:Msh%Nb_Cell)%Color
+      DO iCell = 1,Msh%Nb_Cell
+        IF(Msh%Cells(iCell)%Color ==0 ) THEN; id_last_seed = iCell; EXIT; END IF
+      END DO
+      IF(id_last_seed == 0) EXIT
+      ! print *,id_last_seed
+
+      ! IF(Color == 4) STOP
+    END DO
+
+  END SUBROUTINE Connex_Comp
+
+  FUNCTION valid_edge(Msh,Cell_,i_edg)
+    IMPLICIT NONE
+    TYPE(Mesh), INTENT(IN) :: Msh
+    TYPE(Cell), INTENT(IN) :: Cell_
+    INTEGER,    INTENT(IN) :: i_edg
+
+    TYPE(Cell)  :: Cell_Neigh
+    LOGICAL :: valid_edge
+    INTEGER :: iVer1, iVer2, edg
+
+    valid_edge = .TRUE.
+
+    ! is not a adjacent to void
+    IF(Cell_%CNeigh(i_edg) == 0) THEN 
+      valid_edge = .FALSE. 
+      Return
+    END IF
+
+    ! is not a boundary edge
+    iVer1 = Cell_%Sommets(tri2edg(i_edg,1))
+    iVer2 = Cell_%Sommets(tri2edg(i_edg,2))
+    edg = hash_find(iVer1,iVer2,Msh)
+
+    IF(edg == 0) STOP "edg not found, Valid_edge"
+
+    IF(Msh%EIsOnbdr(edg)) THEN 
+      valid_edge = .FALSE. 
+      Return
+    END IF
+
+    ! is not colored
+    Cell_Neigh = Msh%Cells(Cell_%CNeigh(i_edg))
+    IF(Cell_Neigh%color .NE. 0) THEN 
+      valid_edge = .FALSE. 
+      Return
+    END IF
+
+  END FUNCTION
+
+END MODULE Mod_Delaunay

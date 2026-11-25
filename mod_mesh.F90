@@ -285,7 +285,7 @@ MODULE mod_mesh
         CHARACTER(LEN=1) :: blank
 
         blank =""
-        OPEN(unit=20, file=TRIM(namefile), status='unknown', action='write')
+        OPEN(unit=20, File=namefile, status="unknown")
 
         WRITE(20,'(A)') "MeshVersionFormatted 2"
         WRITE(20,'(A)') blank
@@ -295,7 +295,7 @@ MODULE mod_mesh
         WRITE(20,'(A)') "Vertices"
         WRITE(20,'(I10)') Msh%NB_Ver
         DO i = 1, Msh%NB_Ver
-            WRITE(20,'(2F15.6,I10)') Msh%Coord(i,:), Msh%Vref(i)
+            WRITE(20,'(2F15.6,I3)') Msh%Coord(i,:), 0
         END DO
         WRITE(20,'(A)') blank
 
@@ -306,6 +306,8 @@ MODULE mod_mesh
             WRITE(20,'(3I10,I10)') iCell%Sommets(:), iCell%Cref
         END DO
         WRITE(20,'(A)') blank
+
+        Close(20)
         
 
     END SUBROUTINE WriteMesh
@@ -373,10 +375,10 @@ MODULE mod_mesh
         INTEGER :: iEdg, jEdg
         INTEGER :: iVer1, iVer2, jVer1, jVer2
         INTEGER :: i,j,k,j_hsh
-        INTEGER, DIMENSION(0:2,2), PARAMETER :: tri2edg = reshape([1,2, 2,3, 3,1], [3,2])
+        INTEGER, DIMENSION(3,2), PARAMETER :: tri2edg = reshape([2,3 , 1,3 , 1,2], [3,2])
 
         Msh%SizHead = 2*Msh%NB_Ver
-        Msh%Nb_Edg = Msh%Nb_Ver + Msh%Nb_Cell; Msh%NbrObj = 0;
+        Msh%Nb_Edg = Msh%Nb_Ver + Msh%Nb_Cell ;Msh%NbrObj = 0;
 
         print *, "Check allocation"
 
@@ -397,7 +399,7 @@ MODULE mod_mesh
         DO i = 1, Msh%Nb_Cell;   
             ! print *,i
             iTri = Msh%Cells(i)
-            DO iEdg = 0, 2
+            DO iEdg = 1, 3
 
                 iVer1 = iTri%Sommets(tri2edg(iEdg,1))
                 iVer2 = iTri%Sommets(tri2edg(iEdg,2))
@@ -408,15 +410,15 @@ MODULE mod_mesh
 
                     CALL hash_add(iVer1,iVer2,iTri%index,Msh,j_hsh)
                     jTri = Msh%Cells(Msh%LstObj(j_hsh,3))
-                    iTri%CNeigh(iEdg+1) = jTri%index
-                    iTri%Cell2Edg(iEdg+1) = j_hsh
+                    iTri%CNeigh(iEdg) = jTri%index
+                    iTri%Cell2Edg(iEdg) = j_hsh
 
-                    DO jEdg = 0, 2
+                    DO jEdg = 1, 3
                         jVer1 = jTri%Sommets(tri2edg(jEdg,1))
                         jVer2 = jTri%Sommets(tri2edg(jEdg,2))
                         IF((jVer1 == iVer1 .AND. jVer2 == iVer2) .OR. (jVer1 == iVer2 .AND. jVer2 == iVer1)) THEN
-                            jTri%CNeigh(jEdg+1) = iTri%index
-                            jTri%Cell2Edg(jEdg+1) = j_hsh
+                            jTri%CNeigh(jEdg) = iTri%index
+                            jTri%Cell2Edg(jEdg) = j_hsh
                         END IF
                     END DO
                     Msh%Cells(jTri%index) = jTri
@@ -434,7 +436,7 @@ MODULE mod_mesh
         
         ! print *, Msh%Nb_Ver, Msh%NbNeigh(1:Msh%Nb_Ver)
         Msh%max_neigh_Ver = maxval(Msh%NbNeigh(1:Msh%Nb_Ver))
-        print *, "Maximum number of neighbors for a vertex:", Msh%max_neigh_Ver
+        print *, "Maximum number of neighbors for a vertex:", Msh%max_neigh_Ver,' : ', maxloc(Msh%NbNeigh(:))
 
         ! print *,Msh%Bdr
         
@@ -462,6 +464,9 @@ MODULE mod_mesh
             iVer1 = Msh%Edg(iEdg,1)
             iVer2 = Msh%Edg(iEdg,2)
 
+            IF(iVer1 == 0 .OR. iVer2 == 0) Exit
+
+            ! print *, iEdg, Msh%Edg(iEdg,:)
             Msh%NbNeigh(iVer1) = Msh%NbNeigh(iVer1) + 1
             Msh%NbNeigh(iVer2) = Msh%NbNeigh(iVer2) + 1
 

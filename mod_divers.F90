@@ -512,6 +512,7 @@ CONTAINS
         ! DEALLOCATE(Msh%Head,  Msh%LstObj)
 
 
+
         ! Cell
         ALLOCATE(Msh%Cells(Nb_Cell))
         Msh%Cells = Void_Cell
@@ -527,6 +528,7 @@ CONTAINS
         Msh%VNeigh(1:mVer,:) = Msh_Cpy%VNeigh(1:mVer,:);            Msh%Ver2Cell(1:mVer,:) = Msh_Cpy%Ver2Cell(1:mVer,:)
 
         ALLOCATE(Msh%Edg(Nb_Edg,2),     Msh%EdgNeigh(Nb_Edg,2))
+        Msh%Edg = 0
         Msh%Edg(1:mEdg,:) = Msh_Cpy%Edg(1:mEdg,:);                  Msh%EdgNeigh(1:mEdg,:) = Msh_Cpy%EdgNeigh(1:mEdg,:)
 
         ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
