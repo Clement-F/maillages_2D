@@ -1,6 +1,7 @@
 module mod_Var
 
   use precis
+  use, intrinsic :: ieee_arithmetic, only: IEEE_Value, IEEE_QUIET_NAN
   !************************
   ! Variables globales du programme, accessibles dans tous les modules
   !************************
@@ -51,7 +52,7 @@ module mod_Var
     INTEGER :: Nb_CBdr                                            ! nombre de cellules sur le bord du maillage 
     INTEGER :: Nb_VBdr                                            ! nombre de sommets sur le bord du maillage 
     INTEGER :: Nb_EBdr                                            ! nombre d'aretes sur le bord du maillage 
-    INTEGER, ALLOCATABLE, DIMENSION(:) :: Bdr                     ! Indices de l'arête sur le bord du maillage
+    INTEGER, ALLOCATABLE, DIMENSION(:,:) :: Bdr                     ! Indices des sommets sur le bord du maillage
     INTEGER, ALLOCATABLE, DIMENSION(:) :: VBdr                    ! Lst of Bdr vertex's index ex : (5,14,20,36,...)
     LOGICAL, ALLOCATABLE, DIMENSION(:) :: VIsOnBdr
     LOGICAL, ALLOCATABLE, DIMENSION(:) :: EIsOnbdr              
@@ -66,7 +67,7 @@ module mod_Var
   END TYPE MESH
 
   REAL(prec), parameter :: eps0=0.1_prec**(2*prec-3)
-
+  real(prec) :: nan
 
   TYPE(Cell) :: Void_cell
   

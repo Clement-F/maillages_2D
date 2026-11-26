@@ -77,6 +77,39 @@ CONTAINS
 
     END Function CheckIntersect
 
+
+    Function Intersect(P1,P2, Q1,Q2)       ! Check if the segment (P1,P2) intersects with the segment (Q1,Q2)
+        IMPLICIT NONE
+        REAL(prec), DIMENSION(2) :: Intersect
+        REAL(prec), DIMENSION(2) :: P1,P2, Q1,Q2 !(Ax,Bx,Ay,By)
+        REAL(prec) :: t,u
+        REAL(prec) :: a,b,c,d, k1,k2, det
+        LOGICAL  :: CheckIntersect
+
+        CheckIntersect = .FALSE.
+
+        a = P2(1) - P1(1); b = Q1(1) - Q2(1)
+        c = P2(2) - P1(2); d = Q1(2) - Q2(2)
+        k1= Q1(1) - P1(1); k2= Q1(2) - P1(2)
+
+        det = a*d -b*c
+
+        IF(abs(det) .LT. eps0) THEN 
+            CheckIntersect = .FALSE.
+            RETURN
+        END IF
+
+        t = (k1*d - k2*b)/det;       
+        u = (k2*a - k1*c)/det
+
+        IF(( eps0 < t .AND. t < 1) .AND. (eps0 < u .AND. u < 1) ) CheckIntersect = .TRUE.
+
+        IF(CheckIntersect) THEN;    Intersect = P1 + (P2 - P1)*t
+        ELSE;                       Intersect = nan
+        END IF
+
+    END Function Intersect
+
     FUNCTION Signed_Surface(A,B,C)              ! Calcul la surface signée du triangle ABC
         IMPLICIT NONE
         REAL(prec), DIMENSION(2), INTENT(IN) :: A,B,C
@@ -483,8 +516,6 @@ CONTAINS
         Msh%Cells(iCell)%index = iCell
         Msh%Nb_Cell = Msh%Nb_Cell -1
 
-
-
     END SUBROUTINE Cell_Delete
 
 
@@ -506,9 +537,6 @@ CONTAINS
         mVer  = min(Nb_Ver , Msh%Nb_Ver )
         mEdg  = min(Nb_Edg , Msh%Nb_Edg )
         mVNeigh=min(Msh%max_neigh_Ver,Size(Msh_Cpy%VNeigh(1,:)))
-        ! Msh%Nb_Cell = Nb_Cell; 
-        ! Msh%Nb_Ver = Nb_Ver; 
-        ! Msh%Nb_Edg = Nb_Edg
 
         DEALLOCATE(Msh%Cells)
         DEALLOCATE(Msh%VRef,  Msh%NbNeigh, Msh%VNeigh, Msh%Ver2Cell, Msh%Coord)
@@ -537,7 +565,7 @@ CONTAINS
         ALLOCATE(Msh%Edg(Nb_Edg,2),     Msh%EdgNeigh(Nb_Edg,2))
         Msh%Edg(1:mEdg,:) = Msh_Cpy%Edg(1:mEdg,:);                  Msh%EdgNeigh(1:mEdg,:) = Msh_Cpy%EdgNeigh(1:mEdg,:)
 
-        ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
+        ALLOCATE(Msh%Bdr(Msh%Nb_EBdr,2),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
         Msh%Bdr = Msh_Cpy%Bdr;               Msh%VBdr = Msh_Cpy%VBdr;        
         Msh%VIsOnBdr(1:mVer) = Msh_Cpy%VIsOnBdr(1:mVer);     Msh%EIsOnBdr(1:mEdg) = Msh_Cpy%EIsOnBdr(1:mEdg)
 
@@ -545,16 +573,21 @@ CONTAINS
         ! Msh_Cpy%Head = Msh%Head;                    Msh_Cpy%LstObj = Msh%LstObj
     END SUBROUTINE
 
-    SUBROUTINE ALLOCATE_Mesh(Msh,Nb_Cell, Nb_Ver, Nb_Edg)
+    SUBROUTINE ALLOCATE_Mesh(Msh,Nb_Cell, Nb_Ver, Nb_Edg, Nb_EBdr,Nb_VBdr,max_neigh_Ver )
         IMPLICIT NONE
         TYPE(Mesh), INTENT(INOUT) :: Msh
         INTEGER, INTENT(IN) :: Nb_Cell, Nb_Ver, Nb_Edg
+        INTEGER, INTENT(IN), optional :: Nb_EBdr,Nb_VBdr,max_neigh_Ver 
         
         ALLOCATE(Msh%Cells(Nb_Cell))
-        ALLOCATE(Msh%VRef(Nb_Ver),  Msh%NbNeigh(Nb_Ver),  Msh%Coord(Nb_Ver,2), Msh%VNeigh(Nb_Ver,Msh%max_neigh_Ver))
-        ALLOCATE(Msh%Ver2Cell(Nb_Ver,Msh%max_neigh_Ver))
+        ALLOCATE(Msh%VRef(Nb_Ver),  Msh%NbNeigh(Nb_Ver),  Msh%Coord(Nb_Ver,2))
         ALLOCATE(Msh%Edg(Nb_Edg,2),     Msh%EdgNeigh(Nb_Edg,2))
-        ALLOCATE(Msh%Bdr(Msh%Nb_EBdr),       Msh%VBdr(Msh%Nb_VBdr),   Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
+        ALLOCATE(Msh%VIsOnBdr(Nb_Ver),   Msh%EIsOnBdr(Nb_Edg)) 
+
+        IF(present(Nb_EBdr))        THEN; ALLOCATE(Msh%Bdr(Nb_EBdr,2));                 Else;    ALLOCATE(Msh%Bdr(Msh%Nb_EBdr,2));                END IF
+        IF(present(Nb_VBdr))        THEN; ALLOCATE(Msh%VBdr(Nb_VBdr));                  Else;    ALLOCATE(Msh%VBdr(Msh%Nb_VBdr));               END IF
+        IF(present(max_neigh_Ver))  THEN; ALLOCATE(Msh%VNeigh(Nb_Ver,max_neigh_Ver),        Msh%Ver2Cell(Nb_Ver,max_neigh_Ver));   
+                                    Else; ALLOCATE(Msh%VNeigh(Nb_Ver,Msh%max_neigh_Ver),    Msh%Ver2Cell(Nb_Ver,Msh%max_neigh_Ver));END IF
 
     END SUBROUTINE
 
@@ -613,8 +646,11 @@ CONTAINS
         Msh_Cpy%Edg = Msh%Edg;                      Msh_Cpy%EdgNeigh = Msh%EdgNeigh
 
         ! print *, Msh_Cpy%Nb_Edg
-        ALLOCATE(Msh_Cpy%Bdr(Msh_Cpy%Nb_EBdr),       Msh_Cpy%VBdr(Msh_Cpy%Nb_VBdr),   Msh_Cpy%VIsOnBdr(Msh_Cpy%Nb_Ver),   Msh_Cpy%EIsOnBdr(Msh_Cpy%Nb_Edg)) 
+
+        IF(Allocated(Msh%Bdr)) THEN
+        ALLOCATE(Msh_Cpy%Bdr(Msh_Cpy%Nb_EBdr,2),       Msh_Cpy%VBdr(Msh_Cpy%Nb_VBdr),   Msh_Cpy%VIsOnBdr(Msh_Cpy%Nb_Ver),   Msh_Cpy%EIsOnBdr(Msh_Cpy%Nb_Edg)) 
         Msh_Cpy%Bdr= Msh%Bdr;                           Msh_Cpy%VBdr = Msh%VBdr;        Msh_Cpy%VIsOnBdr = Msh%VIsOnBdr;     Msh_Cpy%EIsOnBdr = Msh%EIsOnBdr
+        END IF
 
         ! ALLOCATE(Msh_Cpy%Head( Msh_Cpy%SizHead),    Msh_Cpy%LstObj(Msh%Nb_Edg,5))
         ! Msh_Cpy%Head = Msh%Head;                    Msh_Cpy%LstObj = Msh%LstObj

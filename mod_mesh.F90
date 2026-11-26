@@ -52,7 +52,7 @@ MODULE mod_mesh
         READ(10,*) blank
         IF(TRIM(blank)=="Edges") THEN
             READ(10,*) Msh%Nb_Ebdr
-            ALLOCATE(Msh%Bdr(Msh%Nb_Ebdr), Msh%Edg(Msh%Nb_Ebdr,2))
+            ALLOCATE(Msh%Bdr(Msh%Nb_Ebdr,2), Msh%Edg(Msh%Nb_Ebdr,2))
             CALL JUMP(Msh%Nb_Ebdr,10)
             ! DO i = 1, Msh%Nb_Ebdr
             !     READ(10,*) itemp
@@ -378,7 +378,8 @@ MODULE mod_mesh
         INTEGER, DIMENSION(3,2), PARAMETER :: tri2edg = reshape([2,3 , 1,3 , 1,2], [3,2])
 
         Msh%SizHead = 2*Msh%NB_Ver
-        Msh%Nb_Edg = Msh%Nb_Ver + Msh%Nb_Cell ;Msh%NbrObj = 0;
+        Msh%Nb_Edg = Msh%Nb_Ver + Msh%Nb_Cell -1 +1
+        Msh%NbrObj = 0;
 
         print *, "Check allocation"
 
@@ -431,6 +432,7 @@ MODULE mod_mesh
             Msh%Cells(i) = iTri
         END DO
 
+        Msh%Nb_Edg = Msh%NbrObj
         Msh%EIsOnBdr = Msh%LstObj(:,4) == 0
         Msh%Nb_EBdr = COUNT(Msh%EIsOnBdr)
         
@@ -444,7 +446,7 @@ MODULE mod_mesh
         IF(ALLOCATED(Msh%Bdr))      DEALLOCATE(Msh%Bdr)
         IF(ALLOCATED(Msh%Ver2Cell)) DEALLOCATE(Msh%Ver2Cell)
 
-        ALLOCATE(Msh%VNeigh(Msh%Nb_Ver, Msh%max_neigh_Ver), Msh%Bdr(Msh%Nb_EBdr))
+        ALLOCATE(Msh%VNeigh(Msh%Nb_Ver, Msh%max_neigh_Ver), Msh%Bdr(Msh%Nb_EBdr,2))
         ALLOCATE(Msh%Ver2Cell(Msh%Nb_Ver, Msh%max_neigh_Ver))
 
         Msh%Ver2Cell = 0;        Msh%NbNeigh = 0
@@ -459,7 +461,7 @@ MODULE mod_mesh
         Msh%Cells%CIsOnBdr = .FALSE.
         Msh%NbNeigh = 0;        Msh%Nb_EBdr = 0
 
-        DO iEdg = 1, Msh%Nb_Edg-1
+        DO iEdg = 1, Msh%Nb_Edg
 
             iVer1 = Msh%Edg(iEdg,1)
             iVer2 = Msh%Edg(iEdg,2)
@@ -481,7 +483,7 @@ MODULE mod_mesh
                 Msh%VIsOnBdr(iVer2) = .TRUE.
 
                 Msh%Nb_EBdr = Msh%Nb_EBdr + 1
-                Msh%Bdr(Msh%Nb_EBdr) = iEdg
+                Msh%Bdr(Msh%Nb_EBdr,1:2) = Msh%Edg(iEdg,1:2)
             END IF
         END DO
 
@@ -531,7 +533,7 @@ MODULE mod_mesh
 
         ALLOCATE(Msh%LstObj  (Msh%Nb_Edg+1,5),   Msh%Edg     (Msh%Nb_Edg,2), Msh%EdgNeigh(Msh%Nb_Edg,2), Msh%Head(Msh%SizHead+1))
         ALLOCATE(Msh%EIsOnBdr(Msh%Nb_Edg),       Msh%VIsOnBdr(Msh%Nb_Ver))
-        Msh%Head = 0;   Msh%EdgNeigh = 0; Msh%LstObj = 0; Msh%EIsOnBdr = .FALSE.
+        Msh%Head = 0;   Msh%EdgNeigh = 0; Msh%LstObj = 0; Msh%EIsOnBdr = .FALSE.; Msh%NbNeigh = 0
 
         print *, "Calculating neighbors"
         DO i = 1, Msh%Nb_Cell
@@ -573,17 +575,18 @@ MODULE mod_mesh
         !     print *,Msh%LstObj(i,:)
         ! END DO
 
-
+        Msh%Nb_Edg = Msh%NbrObj
         Msh%max_neigh_Ver = maxval(Msh%NbNeigh)  ! Each edge contributes to two vertices, so divide by 2
         Msh%EIsOnBdr = Msh%LstObj(:,4) == 0
         Msh%Nb_EBdr = COUNT(Msh%EIsOnBdr)
         
+        print* ,Msh%max_neigh_Ver, Msh%Nb_EBdr ,"bleb"
         
         IF(ALLOCATED(Msh%VNeigh))   DEALLOCATE(Msh%VNeigh)
         IF(ALLOCATED(Msh%Bdr))      DEALLOCATE(Msh%Bdr)
         IF(ALLOCATED(Msh%Ver2Cell)) DEALLOCATE(Msh%Ver2Cell)
 
-        ALLOCATE(Msh%VNeigh(Msh%Nb_Ver, Msh%max_neigh_Ver), Msh%Bdr(Msh%Nb_EBdr))
+        ALLOCATE(Msh%VNeigh(Msh%Nb_Ver, Msh%max_neigh_Ver), Msh%Bdr(Msh%Nb_EBdr,2))
         ALLOCATE(Msh%Ver2Cell(Msh%Nb_Ver, Msh%max_neigh_Ver))
 
         Msh%Ver2Cell = 0;        Msh%NbNeigh = 0
@@ -603,6 +606,7 @@ MODULE mod_mesh
 
             iVer1 = Msh%Edg(iEdg,1)
             iVer2 = Msh%Edg(iEdg,2)
+                print *, Msh%EdgNeigh(iEdg,1),':',iVer1,iVer2
             IF(iVer1 == 0 .OR. iVer2 == 0) EXIT
             Msh%NbNeigh(iVer1) = Msh%NbNeigh(iVer1) + 1
             Msh%NbNeigh(iVer2) = Msh%NbNeigh(iVer2) + 1
@@ -611,20 +615,21 @@ MODULE mod_mesh
             Msh%VNeigh(iVer2,Msh%NbNeigh(iVer2)) = iVer1
             IF(Msh%EdgNeigh(iEdg,2) == 0) THEN
 
-                iCell  = Msh%Cells(Msh%EdgNeigh(iEdg,1))
-                iCell%CIsOnBdr  = .TRUE.
+                Msh%Cells(Msh%EdgNeigh(iEdg,1))%CIsOnBdr  = .TRUE.
                 Msh%VIsOnBdr(iVer1) = .TRUE.
                 Msh%VIsOnBdr(iVer2) = .TRUE.
 
                 Msh%Nb_EBdr = Msh%Nb_EBdr + 1
-                Msh%Bdr(Msh%Nb_EBdr) = iEdg
+                Msh%Bdr(Msh%Nb_EBdr,1:2) = Msh%Edg(iEdg,1:2)
             END IF
+
         END DO
 
         Msh%Nb_CBdr = COUNT(Msh%Cells%CIsOnBdr)
         Msh%Nb_Vbdr = COUNT(Msh%VIsOnBdr)
 
         print *,Msh%Nb_Edg, "edges and", Msh%Nb_EBdr, "boundary edges found."
+        print *,Msh%Nb_Cbdr,"cells on boundary"
 
         IF(ALLOCATED(Msh%VBdr)) DEALLOCATE(Msh%VBdr)
         ALLOCATE(Msh%VBdr(Msh%Nb_Vbdr))
@@ -687,9 +692,10 @@ MODULE mod_mesh
         REAL(prec), DIMENSION(2) :: i_To_j,j_To_k, Coord_j, i_To_jd
         INTEGER :: i,j
 
+
         Msh%Nb_Cell         = Msh_P%Nb_Ver
         Msh%NB_Ver          = Msh_P%Nb_Cell + Msh_P%Nb_EBdr + Msh_P%Nb_VBdr
-        Msh%Nb_Edg          = Msh%NB_Ver + Msh%Nb_Cell -2 +1 +50 !Caractéristique -2 + Vide + Survive
+        Msh%Nb_Edg          = Msh%NB_Ver + Msh%Nb_Cell -2 +1 +20 !Caractéristique -2 + Vide + Survive
         Msh%max_neigh_Cell  = Msh_P%max_neigh_Ver
         Msh%max_neigh_Ver   = Msh_P%max_neigh_Cell   
         Msh%Nb_Ebdr         = 2*Msh_P%Nb_Ebdr   ! Chaque arête du bord est divisé en deux autres arête du bord
@@ -743,19 +749,18 @@ MODULE mod_mesh
         END DO
 
         DO i=1,Msh_P%Nb_Ebdr
-            iEdg = Msh_P%Bdr(i)
             ind = Msh_P%Nb_Cell + Msh_P%Nb_Vbdr + i
 
             Msh%Vref    (ind)   = 0
-            Msh%Coord   (ind,1) = Sum(Msh_P%Coord(Msh_P%Edg(iEdg,1:2),1))/2._prec
-            Msh%Coord   (ind,2) = Sum(Msh_P%Coord(Msh_P%Edg(iEdg,1:2),2))/2._prec
+            Msh%Coord   (ind,1) = Sum(Msh_P%Coord(Msh_P%Bdr(i,1:2),1))/2._prec
+            Msh%Coord   (ind,2) = Sum(Msh_P%Coord(Msh_P%Bdr(i,1:2),2))/2._prec
 
-            Ver_Pi = Msh_P%Edg(iEdg,1); 
+            Ver_Pi = Msh_P%Bdr(i,1); 
             Cell_Di = Ver_Pi
             Msh%Cells(Cell_Di)%NbSom =  Msh%Cells(Cell_Di)%NbSom +1 
             Msh%Cells(Cell_Di)%Sommets(Msh%Cells(Cell_Di)%NbSom)= ind
 
-            Ver_Pi = Msh_P%Edg(iEdg,2); 
+            Ver_Pi = Msh_P%Bdr(i,2); 
             Cell_Di = Ver_Pi
             Msh%Cells(Cell_Di)%NbSom =  Msh%Cells(Cell_Di)%NbSom +1 
             Msh%Cells(Cell_Di)%Sommets(Msh%Cells(Cell_Di)%NbSom)= ind
@@ -954,21 +959,6 @@ MODULE mod_mesh
 
     END SUBROUTINE Correct_Mesh
 
-    SUBROUTINE Lloyd(Msh)
-        IMPLICIT NONE
-        TYPE(Mesh), INTENT(INOUT) :: Msh
-
-        TYPE(Cell) :: nCell
-        INTEGER :: i,n
-
-        ! Calcul les centroides
-
-        ! place les noeuds du Msh sur les centroides
-
-        ! génère un maillage à partir de ces noeuds
-
-
-    END SUBROUTINE Lloyd
 
     
 END MODULE mod_mesh

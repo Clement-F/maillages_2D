@@ -452,6 +452,30 @@ CONTAINS
 
   END SUBROUTINE Starring_Point
 
+  SUBROUTINE Realloc_Point(Msh)
+    IMPLICIT NONE
+    TYPE(Mesh) :: Msh, Msh_cpy
+    TYPE(Cell) :: nCell
+    INTEGER :: security
+    INTEGER :: NbCellMax
+    INTEGER :: Nb_Cell, Nb_Ver, Nb_Edg
+
+    ! Msh_cpy = Msh
+    security = 0
+    NbCellMax= Msh%Nb_Cell + sizeof_boundary + security
+    Nb_Ver  = Msh%Nb_Ver +1
+    Nb_Edg  = Msh%Nb_Edg + sizeof_boundary  +1
+
+    CALL REALLOC_Mesh(Msh, NbCellMax, Nb_Ver, Nb_Edg)
+    Msh%Nb_Ver  = Nb_Ver
+    Msh%Nb_Edg  = Nb_Edg
+    Msh%max_neigh_Ver = max(Msh%max_neigh_Ver, sizeof_boundary)
+
+    ! print *, 'realloc cells to', NbCellMax
+    ! print *, Msh%Nb_Cell, Sizeof_cavity
+
+  END SUBROUTINE Realloc_Point
+
   SUBROUTINE add_Point(Msh, Point)
     !---------------------------------------------
     ! Ajoute un point au maillage msh aux coordonnées données
@@ -480,9 +504,9 @@ CONTAINS
     boundary = 0
     CALL Boundary_hole(Msh, Cavity, boundary ) 
     
-    ! print *,"sizes :", sizeof_Cavity, sizeof_Boundary
-    ! print *,"cavity :", Cavity(1:sizeof_Cavity)
-    ! print *,"boundary:",boundary(1:sizeof_Boundary,3)
+    print *,"sizes :", sizeof_Cavity, sizeof_Boundary
+    print *,"cavity :", Cavity(1:sizeof_Cavity)
+    print *,"boundary:",boundary(1:sizeof_Boundary,3)
 
     CALL Realloc_Point(Msh)
     CALL deleting_cavity(Msh,cavity)
@@ -495,29 +519,153 @@ CONTAINS
 
   END SUBROUTINE add_Point
 
-  SUBROUTINE Realloc_Point(Msh)
+
+  SUBROUTINE Cavity_edge(Msh,Edg,cavity)
+    TYPE(Mesh), INTENT(IN) :: Msh
+    INTEGER, DIMENSION(2), INTENT(IN) :: Edg
+    INTEGER, DIMENSION(Msh%Nb_Cell), INTENT(INOUT) :: cavity               !besoin de limiter la taille de ses listes 
+    INTEGER, DIMENSION(Msh%Nb_Cell) :: pile                 !besoin de limiter la taille de ses listes 
+
+    TYPE(Cell) :: Cell_
+    REAL(prec), DIMENSION(2) :: vect_dir, vect1,vect2
+    LOGICAL :: IsInCavity, IsInPile
+    INTEGER :: Ver1,Ver2, A,B,C, ver_, jEdg
+    INTEGER :: k,n,i, iCell, sizeof_pile, jCell
+
+    sizeof_cavity=0; sizeof_boundary =0;
+    Cavity = 0
+
+    Ver1 = Edg(1); Ver2 = Edg(2)
+    Vect_dir = Msh%Coord(Ver2,:)-Msh%Coord(Ver1,:)
+
+    DO i=1,Msh%NbNeigh(Ver1)
+      Cell_ = Msh%Cells(Msh%Ver2Cell(Ver1,i))
+
+      ver_ = Findloc(Cell_%Sommets(:),ver1,dim=1)
+      A = Cell_%Sommets(mod(ver_    ,3)+1)
+      B = Cell_%Sommets(mod(ver_ + 1,3)+1)
+
+      Vect1 = Msh%Coord(A,:) - Msh%Coord(Ver1,:)
+      Vect2 = Msh%Coord(B,:) - Msh%Coord(Ver1,:)
+
+      IF(det(Vect1,Vect_dir)*det(Vect2,Vect_dir) .LT. eps0) THEN 
+        sizeof_pile   = sizeof_pile +1
+        pile(sizeof_cavity) = Msh%Ver2Cell(Ver1,i)
+      END IF
+
+      IF(sizeof_pile == 2) EXIT
+    END DO
+
+
+    DO WHILE(sizeof_pile .GT. 0)
+      ! add the element to the cavity and remove it from the pile
+      iCell = pile(sizeof_pile);   sizeof_pile   = sizeof_pile -1
+
+      sizeof_cavity = sizeof_cavity +1
+      cavity(sizeof_cavity) = iCell; 
+
+      Cell_ = Msh%Cells(iCell)
+
+      ! check if the neighbours are in the cavity
+      DO jEdg = 1,3
+        IsInCavity =.False. ; IsInPile = .False.
+        jCell = Cell_%CNeigh(jEdg)
+        
+        Ver1 = Msh%Cells(jCell)%Sommets(Tri2Edg(jEdg,1))
+        Ver2 = Msh%Cells(jCell)%Sommets(Tri2Edg(jEdg,2))
+
+        ! Check if the element hasn't been added
+        Do k=1,sizeof_cavity; IF(cavity(k) == jCell) THEN; IsInCavity = .True.;  Exit; END IF; END DO;
+        Do k=1,sizeof_pile;   IF(pile(k) == jCell)   THEN; IsInPile = .True.;    Exit; END IF; END DO;
+
+        IF(.NOT. IsInCavity .AND. (.NOT. IsInPile .AND. jCell .NE. 0 ))THEN
+          ! If it intersects with the edge
+          IF( CheckIntersect(Msh%Coord(Edg(1),:),Msh%Coord(Edg(2),:),   Msh%Coord(Ver1,:),Msh%Coord(Ver2,:)) ) THEN 
+            Sizeof_pile = Sizeof_pile +1
+            pile(Sizeof_pile) = jCell
+          END IF
+        END IF
+
+      END DO
+
+    ! print *,'size of cavity', Sizeof_Cavity
+    ! print *,cavity(1:Sizeof_Cavity)
+    END DO
+
+  END SUBROUTINE Cavity_edge
+
+  SUBROUTINE Starring_Edg(Msh,Cavity,Boundary, Edg)
     IMPLICIT NONE
-    TYPE(Mesh) :: Msh, Msh_cpy
-    TYPE(Cell) :: nCell
-    INTEGER :: security
-    INTEGER :: NbCellMax
-    INTEGER :: Nb_Cell, Nb_Ver, Nb_Edg
+    TYPE(Mesh),                             INTENT(INOUT) :: Msh
+    INTEGER, DIMENSION(sizeof_boundary),    INTENT(INOUT) :: cavity
+    INTEGER, DIMENSION(3*Sizeof_Cavity,3),  INTENT(IN) :: boundary
+    INTEGER, DIMENSION(2),                  INTENT(IN) :: Edg
 
-    ! Msh_cpy = Msh
-    security = 0
-    NbCellMax= Msh%Nb_Cell + sizeof_boundary + security
-    Nb_Ver  = Msh%Nb_Ver +1
-    Nb_Edg  = Msh%Nb_Edg + sizeof_boundary  +1
 
-    CALL REALLOC_Mesh(Msh, NbCellMax, Nb_Ver, Nb_Edg)
-    Msh%Nb_Ver  = Nb_Ver
-    Msh%Nb_Edg  = Nb_Edg
-    Msh%max_neigh_Ver = max(Msh%max_neigh_Ver, sizeof_boundary)
+    INTEGER, DIMENSION(sizeof_boundary,3) :: boundary_left, boundary_right
+    INTEGER :: SizeL, SizeR
+    TYPE(Cell) :: Tri,Tri_bdry, Tri2
+    INTEGER :: iTri, iTri_add, iTri_bdry, jTri
+    INTEGER :: iVer1,iVer2,jVer1,jVer2
+    REAL(prec) :: surface
+    REAL(prec), DIMENSION(2) :: Ver1,Ver2
+    REAL(prec), DIMENSION(2,2) :: EdgR
+    INTEGER :: i,j,k,n
 
-    ! print *, 'realloc cells to', NbCellMax
-    ! print *, Msh%Nb_Cell, Sizeof_cavity
+    EdgR(1,:) = Msh%Coord(Edg(1),:)
+    EdgR(2,:) = Msh%Coord(Edg(2),:)
 
-  END SUBROUTINE Realloc_Point
+    DO i= 1,sizeof_boundary
+      iVer1 = boundary(i,1); Ver1 = Msh%Coord(iVer1,:)
+      iVer2 = boundary(i,2); Ver2 = Msh%Coord(iVer2,:)
+      IF(Signed_Surface(Ver1,EdgR(1,:),EdgR(2,:)) .GT. eps0)  THEN ; boundary_left (SizeL,:) = boundary(i,:); SizeL = SizeL + 1
+                                                              Else ; boundary_right(SizeR,:) = boundary(i,:); SizeR = SizeR + 1; END IF
+    END DO
+
+    DO WHILE(SizeR .GT. 0)
+      ! Si cela n'intersect aucun autres triangles du côté droit
+
+    END DO
+
+
+  END SUBROUTINE Starring_Edg
+
+  SUBROUTINE add_Edge(Msh,Edg)
+    IMPLICIT NONE
+    TYPE(Mesh), INTENT(INOUT) :: Msh
+    INTEGER, DIMENSION(2), INTENT(IN) :: Edg
+    INTEGER, DIMENSION(Msh%Nb_Cell) :: cavity               !besoin de limiter la taille de ses listes 
+    INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
+    INTEGER :: NbCellMax, Nb_Edg
+
+
+    sizeof_cavity=0; sizeof_boundary =0;
+    CALL Cavity_edge(Msh,Edg, cavity);
+
+    if(sizeof_cavity == 0) STOP "ERROR : Edg already there \n"
+
+    ALLOCATE(boundary(3*sizeof_cavity,3))
+    boundary = 0
+    CALL Boundary_hole(Msh, Cavity, boundary ) 
+    
+    print *,"sizes :", sizeof_Cavity, sizeof_Boundary
+    print *,"cavity :", Cavity(1:sizeof_Cavity)
+    print *,"boundary:",boundary(1:sizeof_Boundary,3)
+
+    NbCellMax= Msh%Nb_Cell + sizeof_boundary -4
+    Nb_Edg   = Msh%Nb_Edg  + sizeof_boundary -4
+
+    CALL REALLOC_Mesh(Msh, NbCellMax, Msh%Nb_Ver, Nb_Edg)
+    CALL deleting_cavity(Msh,cavity)
+
+
+
+
+    Deallocate(boundary)
+
+
+  END SUBROUTINE add_Edge
+
 
   SUBROUTINE Mesh_Creation(Msh,Msh_D)
     !--------------------------------------------
@@ -544,6 +692,8 @@ CONTAINS
     INTEGER, DIMENSION(40) :: cavity
     INTEGER, DIMENSION(:,:), ALLOCATABLE :: boundary
 
+    print *, "----------------------------- Creating New Mesh -------------------"
+
     ! Alloue une estimée du nombre de point/Cellules/Edges du maillage final
     Nb_Cellf = 8*Msh%Nb_Ver 
     Nb_Edgf  = 8*Msh%Nb_Ver
@@ -559,10 +709,13 @@ CONTAINS
 
     epsi = 1._prec
 
-    Msh_D%Coord(1,:) = (/Msh%x_deb -epsi, Msh%y_deb -epsi /)
-    Msh_D%Coord(2,:) = (/Msh%x_deb -epsi, Msh%y_fin +epsi /)
-    Msh_D%Coord(3,:) = (/Msh%x_fin +epsi, Msh%y_deb -epsi /)
-    Msh_D%Coord(4,:) = (/Msh%x_fin +epsi, Msh%y_fin +epsi /)
+    Msh_D%x_deb = minval(msh%Coord(:,1)); Msh_D%x_fin = maxval(msh%Coord(:,1))
+    Msh_D%y_deb = minval(msh%Coord(:,2)); Msh_D%y_fin = maxval(msh%Coord(:,2))
+
+    Msh_D%Coord(1,:) = (/Msh_D%x_deb -epsi, Msh_D%y_deb -epsi /)
+    Msh_D%Coord(2,:) = (/Msh_D%x_deb -epsi, Msh_D%y_fin +epsi /)
+    Msh_D%Coord(3,:) = (/Msh_D%x_fin +epsi, Msh_D%y_deb -epsi /)
+    Msh_D%Coord(4,:) = (/Msh_D%x_fin +epsi, Msh_D%y_fin +epsi /)
 
     print *, Msh%x_deb, Msh%y_deb
     print *, Msh%x_fin, Msh%y_fin
@@ -592,8 +745,10 @@ CONTAINS
     DO i=1,Msh%Nb_Ver
       Point = Msh%Coord(i,:)
       write(*,fmt='("======================= adding ",i5,"e Point ", f8.3,f8.3," =================")') i, Msh%Coord(i,:)
-      CALL add_Point(Msh_D, Msh%Coord(i,:))
+      CALL add_Point(Msh_D, Point)
     END DO
+
+    CALL Write_vtk("carre_.vtk",Msh_D)
 
     CALL msh_neighbors_Tri(Msh_D)
 
@@ -604,37 +759,63 @@ CONTAINS
 
     ! inside edges are now also boundary 
 
-    DO i=1,Msh%Nb_Edg
-      Edg = Msh%Edg(i,:)
+
+    DO i=1,Msh%Nb_EBdr
+      Edg = Msh%Bdr(i,:)
       i_Edg_d = Hash_find(Edg(1)+4,Edg(2)+4, Msh_D)
-      IF(i_Edg_d == 0) THEN;  print *,'edge not found, Mesh Creation', Edg;
-      else;Msh_d%EIsOnBdr(i_Edg_d) = Msh%EIsOnBdr(i)
-      END IF
+      IF(i_Edg_d == 0) THEN;  print *,'edge not found, Mesh Creation', Edg;      END IF
+
+      Msh_D%EIsOnBdr(i_Edg_d) = .TRUE. 
     END DO
 
     CALL Connex_Comp(Msh_D)
-    Msh_d%Cells(:)%Cref = Msh_d%Cells(:)%color
-    CALL Write_vtk("carre_full.vtk",Msh_d)
-    Call WriteMesh("carre_full.mesh",Msh_d)
+
+    Msh_D%Cells(:)%Cref = Msh_D%Cells(:)%color
+    CALL Write_vtk("carre_full.vtk",Msh_D)
+    Call WriteMesh("carre_full.mesh",Msh_D)
 
     i = hash_find(1,2,Msh_D)
     i = Msh_D%LstObj(i,3)
     Color_suppr = Msh_D%Cells(i)%Color
 
     Write(*, '("There is ",i2," Connex Component")') maxval(Msh_D%Cells%Color)
+    print *, "deleting Color nb :",Color_suppr
 
-    DO i=1,Msh_d%Nb_Cell
+    i = 1
+    DO WHILE(i .LT. Msh_D%Nb_Cell)
       Cell_ = Msh_d%Cells(i)
       IF( Cell_%color == Color_Suppr) THEN 
         CALL Cell_Delete(i,Msh_D)
+        i = i - 1
       END IF
+      i = i +1
     END DO
+
+    
+    Msh_D%Nb_Ver = Msh_D%Nb_Ver - 4
+    Msh_D%Coord(1:Msh%Nb_Ver,:) = Msh_D%Coord(5:Msh%Nb_Ver+4,:)
+
+    DO i= 1,Msh_D%Nb_Cell
+      Cell_ =  Msh_D%Cells(i)
+
+      CALL OUT_Cell(Cell_)
+      Cell_%NbSom =3; Cell_%index = i
+      Cell_%Sommets(1:3) = Cell_%Sommets(1:3) - 4
+      Cell_%CNeigh(:) =0; 
+      Cell_%Cell2Edg(:) =0
+
+      Msh_D%Cells(i) = Cell_
+    END DO
+
 
     CALL REALLOC_Mesh(Msh_D, Msh_D%Nb_Cell, Msh_D%Nb_Ver, Msh_D%Nb_Edg)
     CALL msh_neighbors_Tri(Msh_D)
 
+    Call WriteMesh("carre_sparse.mesh",Msh_D)
+    CALL Write_vtk("carre_sparse.vtk",Msh_D)
     print *, Msh_D%Nb_Cell
     
+
 
 
 
@@ -744,5 +925,78 @@ CONTAINS
     END IF
 
   END FUNCTION
+
+  ! ====================================================================
+  ! ====================================================================
+
+  SUBROUTINE Lloyd(Msh,Msh_new, Msh_P)
+    IMPLICIT NONE
+    TYPE(Mesh), INTENT(IN) :: Msh, Msh_P
+    TYPE(Mesh), INTENT(OUT)::Msh_New
+    TYPE(Mesh) :: Msh_temp, Msh_, Msh_2
+    TYPE(Cell) :: nCell
+    REAL(prec) :: surf_tri
+    REAL(prec), DIMENSION(2) :: A,B
+    INTEGER :: n,i
+
+    ! Calcul centroid
+
+    CALL Copy_Mesh(Msh,Msh_)
+
+    print *,"calcul centroid"
+
+    DO n=1,Msh_%Nb_Cell
+      nCell = Msh_%Cells(n)
+
+      IF(.NOT. nCell%CIsOnBdr) THEN
+        nCell%Centroid = 0._prec
+        nCell%Surface = 0._prec
+        DO i=1,nCell%NbSom
+          A = Msh_%Coord(nCell%Sommets(mod(i,   nCell%NbSom)+1),:)
+          B = Msh_%Coord(nCell%Sommets(mod(i+1, nCell%NbSom)+1),:)
+
+          surf_tri = det(A,B)/2._prec
+
+          nCell%Surface     = nCell%Surface  + Surf_tri
+
+          nCell%Centroid(1) = nCell%Centroid(1) + (A(1)+B(1))*surf_tri
+          nCell%Centroid(2) = nCell%Centroid(2) + (A(2)+B(2))*surf_tri
+        END DO
+        nCell%Centroid(:) = nCell%Centroid(:)/(3*nCell%Surface + eps0)
+      ELSE 
+        nCell%Centroid = nCell%Center
+      END IF
+
+      print *,nCell%Centroid
+
+      Msh_%Cells(n) = nCell
+    END DO
+    print *,"Centroid calculated"
+
+    ! Def new Msh on centroid
+    CALL ALLOCATE_Mesh(Msh_temp, Nb_Cell= 2, Nb_Ver= Msh_%Nb_Ver, Nb_Edg=Msh_%Nb_edg, Nb_EBdr = 0,Nb_VBdr=0,max_neigh_Ver=0)
+
+    Do n =1,Msh_%Nb_Cell
+      Msh_temp%Coord(n,:) = Msh_%Cells(n)%Centroid(:)
+    END DO
+
+    Msh_temp%Nb_Ver = Msh_%Nb_Cell
+    Msh_temp%Nb_EBdr= Msh_P%Nb_EBdr
+
+    Msh_temp%Bdr = Msh_P%Bdr
+
+    ! print *,Msh_temp%Nb_Ver
+
+    CALL Mesh_Creation(Msh_temp,Msh_2)
+
+    CALL msh_neighbors_Tri(Msh_2)
+    CALL Calc_Surface(Msh_2)
+    CALL Calc_center(Msh_2)
+
+    CALL Voronoi(Msh_2, Msh_New)
+    
+    
+
+  END SUBROUTINE Lloyd
 
 END MODULE Mod_Delaunay
